@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mafia Darkz - Player</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; }
+    input, button { padding: 10px; margin: 10px; border: none; border-radius: 5px; }
+    input { width: 220px; }
+    button { background: #444; color: white; cursor: pointer; }
+    button:hover { background: #666; }
+    .role-box { margin-top: 30px; background: #222; padding: 30px; border-radius: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>🎭 Mafia Darkz - Player</h1>
+  <p>Enter your session ID and name</p>
+
+  <input type="text" id="sessionId" placeholder="Session ID"><br>
+  <input type="text" id="playerName" placeholder="Your Name"><br>
+  <button onclick="revealRole()">Show My Role</button>
+
+  <div class="role-box" id="roleBox"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB2dpdsTkKtNHsxFkN6wmvJkLL9lhmWPBE",
+      authDomain: "mafia-darkz-995bb.firebaseapp.com",
+      databaseURL: "https://mafia-darkz-995bb-default-rtdb.firebaseio.com",
+      projectId: "mafia-darkz-995bb",
+      storageBucket: "mafia-darkz-995bb.appspot.com",
+      messagingSenderId: "555156171160",
+      appId: "1:555156171160:web:9e5cd8ab8eb9ba7661423ed"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function revealRole() {
+      const sessionId = document.getElementById('sessionId').value.trim();
+      const playerName = document.getElementById('playerName').value.trim();
+      if (!sessionId || !playerName) return alert('Please enter both session ID and your name');
+
+      const roleBox = document.getElementById('roleBox');
+      const playerRef = db.ref(`sessions/${sessionId}/${playerName}`);
+
+      playerRef.once('value').then(snapshot => {
+        const role = snapshot.val();
+        if (role) {
+          roleBox.innerHTML = `<h2>${playerName}</h2><p>Your role is: <strong>${role}</strong></p>`;
+          roleBox.style.display = 'block';
+        } else {
+          alert('Role not found! Please check your name or session ID.');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
