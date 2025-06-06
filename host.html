@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,63 +7,26 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-      margin: 0;
-    }
-    input, button, select {
-      padding: 12px;
-      margin: 8px auto;
-      border: none;
-      border-radius: 8px;
-      display: block;
-      width: 90%;
-      max-width: 300px;
-      font-size: 16px;
-    }
-    button {
-      background: #444;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #666;
-    }
-    .player-list, .result-box {
-      margin: 20px auto;
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 400px;
-      text-align: left;
-    }
-    ul { padding: 0; list-style: none; }
-    li { margin: 5px 0; }
-    h1, h2 { margin-bottom: 20px; }
+    body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; text-align: center; }
+    input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
+    button { background: #444; color: #fff; cursor: pointer; }
+    button:hover { background: #666; }
+    .player-list { margin-top: 20px; }
+    .player-item { margin: 5px 0; padding: 5px; background: #222; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h1>🎭 Darkz Mafia - Host</h1>
+  <h1>🕹️ Darkz Mafia - Host</h1>
+  <input type="text" id="hostSession" placeholder="Enter Session ID">
+  <button onclick="startHost()">Start Session</button>
+  <div id="sessionDisplay"></div>
 
-  <input type="text" id="sessionId" placeholder="Session ID" readonly><br>
-  <input type="text" id="playerName" placeholder="Player name">
-  <button onclick="addPlayer()">Add Player</button><br>
-
-  <select id="mafiaCount">
-    <option value="1">Mafia: 1</option>
-    <option value="2">Mafia: 2</option>
-    <option value="3">Mafia: 3</option>
-  </select>
-
-  <button onclick="startGame()">ابدأ القيم</button>
-
+  <h2>Players</h2>
   <div class="player-list" id="playerList"></div>
-  <div class="result-box" id="roleResults"></div>
-  <button onclick="restartGame()">🔄 إعادة القيم</button>
+
+  <button onclick="assignRoles()">🎲 Assign Roles</button>
+  <button onclick="endGame()" style="margin-left: 10px; background: darkred;">❌ End Game</button>
+  <div class="message" id="gameStatus" style="margin-top: 20px;"></div>
 
   <script>
     const firebaseConfig = {
@@ -77,88 +40,66 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-
-    const generatedId = 'g-' + Math.random().toString(36).substring(2, 6);
-    document.getElementById('sessionId').value = generatedId;
     const db = firebase.database();
 
-    function restartGame() {
-      location.reload();
+    function startHost() {
+      const sessionId = document.getElementById('hostSession').value.trim();
+      if (!sessionId) return alert('Enter session ID');
+      localStorage.setItem('hostSessionId', sessionId);
+      document.getElementById('sessionDisplay').textContent = `Session: ${sessionId}`;
+      loadPlayers(sessionId);
     }
 
-    let players = [];
-
-    function removePlayer(index) {
-      players.splice(index, 1);
-      renderPlayers();
-    }
-
-    function addPlayer() {
-      const name = document.getElementById('playerName').value.trim();
-      if (name) {
-        players.push({ name, role: '' });
-        document.getElementById('playerName').value = '';
-        renderPlayers();
-      }
-    }
-
-    function renderPlayers() {
-      const list = document.getElementById('playerList');
-      list.innerHTML = '';
-      players.forEach((p, index) => {
-        const div = document.createElement('div');
-        div.innerHTML = `${p.name} <button onclick="removePlayer(${index})">❌</button>`;
-        list.appendChild(div);
+    function loadPlayers(sessionId) {
+      const ref = db.ref(`players/${sessionId}`);
+      ref.on('child_added', (snap) => {
+        const playerData = snap.val();
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-item';
+        playerDiv.textContent = playerData.name;
+        document.getElementById('playerList').appendChild(playerDiv);
       });
     }
 
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+    function assignRoles() {
+      const sessionId = localStorage.getItem('hostSessionId');
+      if (!sessionId) return;
+      const roles = ['🦹 Mafia', '🧑‍⚕️ Doctor', '🧓 Elder'];
+      const ref = db.ref(`players/${sessionId}`);
+      ref.once('value', (snapshot) => {
+        const players = [];
+        snapshot.forEach((child) => {
+          players.push(child.val().name);
+        });
+        const shuffled = players.sort(() => 0.5 - Math.random());
+        const assigned = {};
+        shuffled.forEach((name, i) => {
+          const role = roles[i] || '👤 Villager';
+          assigned[name] = role;
+        });
+        for (const name in assigned) {
+          db.ref(`sessions/${sessionId}/${name}`).set(assigned[name]);
+        }
+        document.getElementById('gameStatus').textContent = '✅ Roles assigned!';
+      });
+    }
+
+    function endGame() {
+      const sessionId = localStorage.getItem('hostSessionId');
+      if (!sessionId) return;
+      db.ref(`players/${sessionId}`).remove();
+      db.ref(`sessions/${sessionId}`).remove();
+      document.getElementById('playerList').innerHTML = '';
+      document.getElementById('gameStatus').textContent = '❌ Game ended and data cleared';
+    }
+
+    window.onload = () => {
+      const saved = localStorage.getItem('hostSessionId');
+      if (saved) {
+        document.getElementById('hostSession').value = saved;
+        startHost();
       }
-    }
-
-    function startGame() {
-      const sessionId = document.getElementById('sessionId').value.trim();
-      if (!sessionId) return alert('Enter a session ID');
-
-      const mafiaCount = parseInt(document.getElementById('mafiaCount').value);
-      const total = players.length;
-
-      const roles = [];
-      for (let i = 0; i < mafiaCount; i++) roles.push('Mafia');
-
-      if (total - mafiaCount >= 3) {
-        roles.push('Doctor');
-        roles.push('Elder');
-      } else if (total - mafiaCount >= 2) {
-        roles.push('Doctor');
-      } else if (total - mafiaCount >= 1) {
-        roles.push('Doctor');
-      }
-
-      while (roles.length < total) roles.push('Villager');
-
-      shuffle(roles);
-      players.forEach((p, i) => p.role = roles[i]);
-
-      const sessionRef = db.ref(`sessions/${sessionId}`);
-      const data = {};
-      players.forEach(p => data[p.name] = p.role);
-      sessionRef.set(data);
-
-      showRoles();
-    }
-
-    function showRoles() {
-      document.querySelector('button[onclick="restartGame()"]').style.display = 'inline-block';
-      const resultBox = document.getElementById('roleResults');
-      resultBox.innerHTML = '<h2>🎲 Roles Assigned:</h2><ul>' +
-        players.map(p => `<li><strong>👤 ${p.name}</strong>: 🎭 ${p.role}</li>`).join('') +
-        '</ul>';
-      resultBox.style.display = 'block';
-    }
+    };
   </script>
 </body>
 </html>
