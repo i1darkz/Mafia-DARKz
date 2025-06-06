@@ -20,6 +20,7 @@
   <h1>🎮 Darkz Mafia - Host</h1>
   <input type="text" id="sessionId" placeholder="Session ID">
   <div id="sessionNotice" style="margin-top: 5px; font-size: 14px; color: #0f0;"></div>
+  <input type="number" id="mafiaCount" placeholder="عدد المافيا" min="1" max="10">
   <button onclick="copySessionId()">📋 نسخ الكود</button>
   <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
   <button onclick="startGame()">🚀 ابدأ اللعبة</button>
@@ -40,16 +41,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    const roles = ['مافيا', 'مافيا', 'دكتور', 'شايب'];
-
-    function copySessionId() {
-      const input = document.getElementById('sessionId');
-      if (!input.value) return alert('لا يوجد كود لنسخه');
-      navigator.clipboard.writeText(input.value).then(() => {
-        alert('📋 تم نسخ الكود بنجاح!');
-      });
-    }
 
     function confirmSession() {
       const id = document.getElementById('sessionId').value.trim();
@@ -73,9 +64,18 @@
       });
     }
 
+    function copySessionId() {
+      const input = document.getElementById('sessionId');
+      if (!input.value) return alert('لا يوجد كود لنسخه');
+      navigator.clipboard.writeText(input.value).then(() => {
+        alert('📋 تم نسخ الكود بنجاح!');
+      });
+    }
+
     function startGame() {
       if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
+      const mafiaCount = parseInt(document.getElementById('mafiaCount').value) || 2;
       const ref = db.ref(`players/${sessionId}`);
       const sessionRef = db.ref(`sessions/${sessionId}`);
       sessionRef.remove();
@@ -86,6 +86,12 @@
         });
 
         const shuffled = [...players].sort(() => 0.5 - Math.random());
+        const roles = [];
+        for (let i = 0; i < mafiaCount; i++) roles.push('مافيا');
+        roles.push('دكتور');
+        roles.push('شايب');
+        while (roles.length < players.length) roles.push('مواطن');
+
         shuffled.forEach((player, i) => {
           const role = roles[i] || 'مواطن';
           sessionRef.child(player.name).set(role);
