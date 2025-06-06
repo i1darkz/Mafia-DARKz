@@ -3,21 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mafia Darkz - Host</title>
+  <title>Darkz Mafia - Host</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; }
-    input, button, select { padding: 10px; margin: 5px; border: none; border-radius: 5px; }
-    input, select { width: 200px; }
-    button { background: #444; color: white; cursor: pointer; }
-    button:hover { background: #666; }
-    .player-list { margin-top: 20px; }
-    .result-box { margin-top: 30px; background: #222; padding: 20px; border-radius: 10px; display: none; }
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    input, button, select {
+      padding: 12px;
+      margin: 8px auto;
+      border: none;
+      border-radius: 8px;
+      display: block;
+      width: 90%;
+      max-width: 300px;
+      font-size: 16px;
+    }
+    button {
+      background: #444;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
+    }
+    .player-list, .result-box {
+      margin: 20px auto;
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      text-align: left;
+    }
+    ul { padding: 0; list-style: none; }
+    li { margin: 5px 0; }
+    h1, h2 { margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h1>🎭 Mafia Darkz - Host</h1>
+  <h1>🎭 Darkz Mafia - Host</h1>
 
   <input type="text" id="sessionId" placeholder="Session ID" readonly><br>
   <input type="text" id="playerName" placeholder="Player name">
@@ -48,7 +78,7 @@
 
     firebase.initializeApp(firebaseConfig);
 
-    const generatedId = 'game-' + Math.random().toString(36).substring(2, 8);
+    const generatedId = 'g-' + Math.random().toString(36).substring(2, 6);
     document.getElementById('sessionId').value = generatedId;
     const db = firebase.database();
 
@@ -57,6 +87,11 @@
     }
 
     let players = [];
+
+    function removePlayer(index) {
+      players.splice(index, 1);
+      renderPlayers();
+    }
 
     function addPlayer() {
       const name = document.getElementById('playerName').value.trim();
@@ -70,9 +105,9 @@
     function renderPlayers() {
       const list = document.getElementById('playerList');
       list.innerHTML = '';
-      players.forEach(p => {
+      players.forEach((p, index) => {
         const div = document.createElement('div');
-        div.textContent = p.name;
+        div.innerHTML = `${p.name} <button onclick="removePlayer(${index})">❌</button>`;
         list.appendChild(div);
       });
     }
