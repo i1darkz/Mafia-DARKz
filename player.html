@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -54,23 +53,38 @@
         return;
       }
 
-      const playerListRef = db.ref(`players/${sessionId}`).push();
-      playerListRef.set({ name: playerName });
+      const playerRef = db.ref(`players/${sessionId}`);
+      playerRef.orderByChild('name').equalTo(playerName).once('value', snapshot => {
+        if (snapshot.exists()) {
+          proceed(sessionId, playerName);
+        } else {
+          playerRef.push({ name: playerName });
+          db.ref(`sessions/${sessionId}/${playerName}`).set('');
+          proceed(sessionId, playerName);
+        }
+      });
+    }
 
-      const sessionPlayersRef = db.ref(`sessions/${sessionId}/${playerName}`);
-      sessionPlayersRef.set('');
-
-      messageBox.textContent = `✅ ${playerName}, you’ve been added to the game!`;
+    function proceed(sessionId, playerName) {
       document.getElementById('joinSection').style.display = 'none';
       document.getElementById('waitingMessage').style.display = 'block';
-      document.getElementById('revealRoleBtn').style.display = 'block';
+      const sessionPlayersRef = db.ref(`sessions/${sessionId}/${playerName}`);
+      const statusRef = db.ref(`status/${sessionId}`);
 
-      // Listen for assigned role
+      statusRef.on('value', (snap) => {
+        const status = snap.val();
+        if (status === 'started') {
+          document.getElementById('revealRoleBtn').style.display = 'block';
+        } else {
+          document.getElementById('revealRoleBtn').style.display = 'none';
+        }
+      });
+
       sessionPlayersRef.on('value', (snapshot) => {
         const role = snapshot.val();
         if (role) {
           document.getElementById('waitingMessage').style.display = 'none';
-          document.getElementById('roleBox').textContent = `🎭 Your Role: ${role}`;
+          document.getElementById('roleBox').textContent = `🎭 دورك: ${role}`;
         }
       });
     }
