@@ -7,27 +7,23 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; margin: 0; }
-    input, button { padding: 12px; margin: 8px auto; border: none; border-radius: 8px; display: block; width: 90%; max-width: 300px; font-size: 16px; }
-    button { background: #444; color: white; cursor: pointer; }
-    button:hover { background: #666; }
-    .message { margin-top: 20px; font-size: 18px; color: lightgreen; }
-    .role-box { margin-top: 30px; font-size: 20px; color: yellow; }
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 30px; }
+    input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
+    button { background-color: #333; color: white; cursor: pointer; }
+    button:hover { background-color: #555; }
+    #roleBox { background: #222; border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
   </style>
 </head>
 <body>
-  <h1>🎭 Darkz Mafia - Player</h1>
-
-  <div id="joinSection">
-    <input type="text" id="sessionId" placeholder="Session ID">
-    <input type="text" id="playerName" placeholder="Your Name">
-    <button onclick="submitName()">Join Game</button>
-    <div class="message" id="messageBox"></div>
-    <div class="message" id="waitingMessage" style="display:none; color: orange;">⏳ Waiting for game to start...</div>
+  <h1>👤 Darkz Mafia - Player</h1>
+  <input type="text" id="name" placeholder="اسمك">
+  <input type="text" id="session" placeholder="رمز الجلسة">
+  <button onclick="joinGame()">🚪 انضم</button>
+  <div id="waiting" style="display:none; margin-top: 20px;">⏳ بانتظار بدء اللعبة...</div>
+  <div id="roleBox">
+    <div id="yourRole" style="font-size: 20px; color: yellow;">انت: ...</div>
+    <button onclick="toggleRole()">👁️‍🗨️ عرض / إخفاء الدور</button>
   </div>
-
-  <div class="role-box" id="roleBox" style="display: none;"></div>
-  <button id="revealRoleBtn" style="display:none; background:#222; color:#fff;">👁️ Show My Role</button>
 
   <script>
     const firebaseConfig = {
@@ -43,56 +39,40 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function submitName() {
-      const sessionId = document.getElementById('sessionId').value.trim();
-      const playerName = document.getElementById('playerName').value.trim();
-      const messageBox = document.getElementById('messageBox');
+    let playerName = '';
+    let sessionId = '';
 
-      if (!sessionId || !playerName) {
-        messageBox.textContent = 'Please enter both session ID and your name';
-        return;
+    function joinGame() {
+      playerName = document.getElementById('name').value.trim();
+      sessionId = document.getElementById('session').value.trim();
+      if (!playerName || !sessionId) return alert('اكتب الاسم والجلسة');
+
+      const playerRef = db.ref(`players/${sessionId}`).push();
+      playerRef.set({ name: playerName });
+
+      document.getElementById('waiting').style.display = 'block';
+
+      db.ref(`status/${sessionId}`).on('value', snapshot => {
+        if (snapshot.val() === 'started') {
+          db.ref(`sessions/${sessionId}/${playerName}`).once('value', snap => {
+            if (snap.exists()) {
+              document.getElementById('yourRole').textContent = `🎭 دورك: ${snap.val()}`;
+              document.getElementById('roleBox').style.display = 'block';
+              document.getElementById('waiting').style.display = 'none';
+            }
+          });
+        }
+      });
+    }
+
+    function toggleRole() {
+      const role = document.getElementById('yourRole');
+      if (role.style.visibility === 'hidden') {
+        role.style.visibility = 'visible';
+      } else {
+        role.style.visibility = 'hidden';
       }
-
-      const playerRef = db.ref(`players/${sessionId}`);
-      playerRef.orderByChild('name').equalTo(playerName).once('value', snapshot => {
-        if (snapshot.exists()) {
-          proceed(sessionId, playerName);
-        } else {
-          playerRef.push({ name: playerName });
-          db.ref(`sessions/${sessionId}/${playerName}`).set('');
-          proceed(sessionId, playerName);
-        }
-      });
     }
-
-    function proceed(sessionId, playerName) {
-      document.getElementById('joinSection').style.display = 'none';
-      document.getElementById('waitingMessage').style.display = 'block';
-      const sessionPlayersRef = db.ref(`sessions/${sessionId}/${playerName}`);
-      const statusRef = db.ref(`status/${sessionId}`);
-
-      statusRef.on('value', (snap) => {
-        const status = snap.val();
-        if (status === 'started') {
-          document.getElementById('revealRoleBtn').style.display = 'block';
-        } else {
-          document.getElementById('revealRoleBtn').style.display = 'none';
-        }
-      });
-
-      sessionPlayersRef.on('value', (snapshot) => {
-        const role = snapshot.val();
-        if (role) {
-          document.getElementById('waitingMessage').style.display = 'none';
-          document.getElementById('roleBox').textContent = `🎭 دورك: ${role}`;
-        }
-      });
-    }
-
-    document.getElementById('revealRoleBtn').addEventListener('click', () => {
-      document.getElementById('roleBox').style.display = 'block';
-      document.getElementById('revealRoleBtn').style.display = 'none';
-    });
   </script>
 </body>
 </html>

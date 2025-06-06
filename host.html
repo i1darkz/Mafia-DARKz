@@ -19,6 +19,8 @@
 <body>
   <h1>🎮 Darkz Mafia - Host</h1>
   <input type="text" id="sessionId" placeholder="Session ID">
+  <div id="sessionNotice" style="margin-top: 5px; font-size: 14px; color: #0f0;"></div>
+  <button onclick="copySessionId()">📋 نسخ الكود</button>
   <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
   <button onclick="startGame()">🚀 ابدأ اللعبة</button>
   <button onclick="endGame()">🛑 إنهاء اللعبة</button>
@@ -38,12 +40,26 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
     const roles = ['مافيا', 'مافيا', 'دكتور', 'شايب'];
+
+    function copySessionId() {
+      const input = document.getElementById('sessionId');
+      if (!input.value) return alert('لا يوجد كود لنسخه');
+      navigator.clipboard.writeText(input.value).then(() => {
+        alert('📋 تم نسخ الكود بنجاح!');
+      });
+    }
 
     function confirmSession() {
       const id = document.getElementById('sessionId').value.trim();
       if (!id) return alert('أدخل معرف الجلسة (Session ID)');
+      if (currentSessionId && currentSessionId !== id) {
+        const confirmChange = confirm('هل تريد تغيير الجلسة الحالية؟');
+        if (!confirmChange) return;
+      }
       currentSessionId = id;
+      document.getElementById('sessionNotice').textContent = `🆔 الجلسة الحالية: ${id}`;
       db.ref(`players/${id}`).on('value', snapshot => {
         const playerList = document.getElementById('playerList');
         playerList.innerHTML = '';
@@ -60,16 +76,14 @@
     function startGame() {
       if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
-
       const ref = db.ref(`players/${sessionId}`);
+      const sessionRef = db.ref(`sessions/${sessionId}`);
+      sessionRef.remove();
       ref.once('value', snapshot => {
         const players = [];
         snapshot.forEach(child => {
           players.push({ key: child.key, name: child.val().name });
         });
-
-        const sessionRef = db.ref(`sessions/${sessionId}`);
-        sessionRef.remove(); // إعادة تعيين الأدوار
 
         const shuffled = [...players].sort(() => 0.5 - Math.random());
         shuffled.forEach((player, i) => {
@@ -79,7 +93,7 @@
 
         db.ref(`status/${sessionId}`).set('started');
         renderPlayers(sessionId);
-        alert('✅ تم توزيع الأدوار بنجاح');
+        alert('✅ تم توزيع الأدوار بنجاح!');
       });
     }
 
