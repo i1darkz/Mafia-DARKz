@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -12,17 +13,22 @@
     button { background: #444; color: white; cursor: pointer; }
     button:hover { background: #666; }
     .message { margin-top: 20px; font-size: 18px; color: lightgreen; }
+    .role-box { margin-top: 30px; font-size: 20px; color: yellow; }
   </style>
 </head>
 <body>
   <h1>🎭 Darkz Mafia - Player</h1>
 
-  <input type="text" id="sessionId" placeholder="Session ID">
-  <input type="text" id="playerName" placeholder="Your Name">
-  <button onclick="submitName()">Join Game</button>
+  <div id="joinSection">
+    <input type="text" id="sessionId" placeholder="Session ID">
+    <input type="text" id="playerName" placeholder="Your Name">
+    <button onclick="submitName()">Join Game</button>
+    <div class="message" id="messageBox"></div>
+    <div class="message" id="waitingMessage" style="display:none; color: orange;">⏳ Waiting for game to start...</div>
+  </div>
 
-  <div class="message" id="messageBox"></div>
-  <button onclick="endGame()">❌ إنهاء القيم</button>
+  <div class="role-box" id="roleBox" style="display: none;"></div>
+  <button id="revealRoleBtn" style="display:none; background:#222; color:#fff;">👁️ Show My Role</button>
 
   <script>
     const firebaseConfig = {
@@ -38,15 +44,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function endGame() {
-      const sessionId = document.getElementById('sessionId').value.trim();
-      if (!sessionId) return alert('Please enter a session ID to end.');
-
-      db.ref(`sessions/${sessionId}`).remove();
-      db.ref(`players/${sessionId}`).remove();
-      alert('✅ تم حذف الجيم نهائيًا.');
-    }
-
     function submitName() {
       const sessionId = document.getElementById('sessionId').value.trim();
       const playerName = document.getElementById('playerName').value.trim();
@@ -57,16 +54,31 @@
         return;
       }
 
-      // Add player to the list for display
       const playerListRef = db.ref(`players/${sessionId}`).push();
       playerListRef.set({ name: playerName });
 
-      // Reserve spot for role assignment later
       const sessionPlayersRef = db.ref(`sessions/${sessionId}/${playerName}`);
       sessionPlayersRef.set('');
 
       messageBox.textContent = `✅ ${playerName}, you’ve been added to the game!`;
+      document.getElementById('joinSection').style.display = 'none';
+      document.getElementById('waitingMessage').style.display = 'block';
+      document.getElementById('revealRoleBtn').style.display = 'block';
+
+      // Listen for assigned role
+      sessionPlayersRef.on('value', (snapshot) => {
+        const role = snapshot.val();
+        if (role) {
+          document.getElementById('waitingMessage').style.display = 'none';
+          document.getElementById('roleBox').textContent = `🎭 Your Role: ${role}`;
+        }
+      });
     }
+
+    document.getElementById('revealRoleBtn').addEventListener('click', () => {
+      document.getElementById('roleBox').style.display = 'block';
+      document.getElementById('revealRoleBtn').style.display = 'none';
+    });
   </script>
 </body>
 </html>
