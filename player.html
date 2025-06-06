@@ -7,23 +7,22 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; }
-    input, button { padding: 10px; margin: 10px; border: none; border-radius: 5px; }
-    input { width: 220px; }
+    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; margin: 0; }
+    input, button { padding: 12px; margin: 8px auto; border: none; border-radius: 8px; display: block; width: 90%; max-width: 300px; font-size: 16px; }
     button { background: #444; color: white; cursor: pointer; }
     button:hover { background: #666; }
-    .role-box { margin-top: 30px; background: #222; padding: 30px; border-radius: 10px; display: none; }
+    .message { margin-top: 20px; font-size: 18px; color: lightgreen; }
   </style>
 </head>
 <body>
   <h1>🎭 Darkz Mafia - Player</h1>
-  <p>Enter your session ID and name</p>
 
-  <input type="text" id="sessionId" placeholder="Session ID"><br>
-  <input type="text" id="playerName" placeholder="Your Name"><br>
-  <button onclick="revealRole()">Show My Role</button>
+  <input type="text" id="sessionId" placeholder="Session ID">
+  <input type="text" id="playerName" placeholder="Your Name">
+  <button onclick="submitName()">Join Game</button>
 
-  <div class="role-box" id="roleBox"></div>
+  <div class="message" id="messageBox"></div>
+  <button onclick="endGame()">❌ إنهاء القيم</button>
 
   <script>
     const firebaseConfig = {
@@ -39,23 +38,34 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function revealRole() {
+    function endGame() {
+      const sessionId = document.getElementById('sessionId').value.trim();
+      if (!sessionId) return alert('Please enter a session ID to end.');
+
+      db.ref(`sessions/${sessionId}`).remove();
+      db.ref(`players/${sessionId}`).remove();
+      alert('✅ تم حذف الجيم نهائيًا.');
+    }
+
+    function submitName() {
       const sessionId = document.getElementById('sessionId').value.trim();
       const playerName = document.getElementById('playerName').value.trim();
-      if (!sessionId || !playerName) return alert('Please enter both session ID and your name');
+      const messageBox = document.getElementById('messageBox');
 
-      const roleBox = document.getElementById('roleBox');
-      const playerRef = db.ref(`sessions/${sessionId}/${playerName}`);
+      if (!sessionId || !playerName) {
+        messageBox.textContent = 'Please enter both session ID and your name';
+        return;
+      }
 
-      playerRef.once('value').then(snapshot => {
-        const role = snapshot.val();
-        if (role) {
-          roleBox.innerHTML = `<h2>${playerName}</h2><p>Your role is: <strong>${role}</strong></p>`;
-          roleBox.style.display = 'block';
-        } else {
-          alert('Role not found! Please check your name or session ID.');
-        }
-      });
+      // Add player to the list for display
+      const playerListRef = db.ref(`players/${sessionId}`).push();
+      playerListRef.set({ name: playerName });
+
+      // Reserve spot for role assignment later
+      const sessionPlayersRef = db.ref(`sessions/${sessionId}/${playerName}`);
+      sessionPlayersRef.set('');
+
+      messageBox.textContent = `✅ ${playerName}, you’ve been added to the game!`;
     }
   </script>
 </body>
