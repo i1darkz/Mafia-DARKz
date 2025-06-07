@@ -1,1 +1,97 @@
-<!-- كود صفحة اللاعب المحدث سيتم وضعه هنا -->
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Darkz Mafia - Player</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+    input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
+    button { background-color: #333; color: white; cursor: pointer; }
+    button:hover { background-color: #555; }
+    .hidden { display: none; }
+    #roleDisplay { font-size: 22px; color: yellow; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🎮 Darkz Mafia - Player</h1>
+  <input type="text" id="sessionId" placeholder="Session ID (EN only)">
+  <input type="text" id="playerName" placeholder="Your Name (EN only)">
+  <button onclick="joinGame()">🚪 Join Game</button>
+  <div id="waitingMessage" class="hidden">⏳ Waiting for game to start...</div>
+  <button id="showRoleBtn" class="hidden" onclick="showRole()">👁 Show Role</button>
+  <button id="hideRoleBtn" class="hidden" onclick="hideRole()">🙈 Hide Role</button>
+  <div id="roleDisplay" class="hidden"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB2dpdsTkKtNHsxFkN6wmvJkLL9lhmWPBE",
+      authDomain: "mafia-darkz-995bb.firebaseapp.com",
+      databaseURL: "https://mafia-darkz-995bb-default-rtdb.firebaseio.com",
+      projectId: "mafia-darkz-995bb",
+      storageBucket: "mafia-darkz-995bb.appspot.com",
+      messagingSenderId: "555156171160",
+      appId: "1:555156171160:web:9e5cd8ab8eb9ba7661423ed"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let sessionId = '';
+    let playerName = '';
+
+    function joinGame() {
+      sessionId = document.getElementById('sessionId').value.trim();
+      playerName = document.getElementById('playerName').value.trim();
+      if (!sessionId || !playerName) return alert('Please fill in both fields.');
+      if (!/^[A-Za-z0-9_]+$/.test(playerName)) return alert('Use English letters/numbers only.');
+
+      const playerRef = db.ref(`players/${sessionId}`);
+      playerRef.once('value', snapshot => {
+        let exists = false;
+        snapshot.forEach(child => {
+          if (child.val().name === playerName) exists = true;
+        });
+        if (exists) {
+          alert('This name is already taken.');
+          return;
+        }
+
+        playerRef.push({ name: playerName });
+        document.getElementById('waitingMessage').classList.remove('hidden');
+        monitorGame();
+      });
+    }
+
+    function monitorGame() {
+      db.ref(`status/${sessionId}`).on('value', snapshot => {
+        const status = snapshot.val();
+        if (status === 'started') {
+          document.getElementById('showRoleBtn').classList.remove('hidden');
+        } else if (status === 'ended') {
+          alert('🛑 The game has ended!');
+          window.location.reload();
+        }
+      });
+    }
+
+    function showRole() {
+      db.ref(`sessions/${sessionId}/${playerName}`).once('value', snap => {
+        const role = snap.val();
+        if (role) {
+          document.getElementById('roleDisplay').textContent = `🎭 Your Role: ${role}`;
+          document.getElementById('roleDisplay').classList.remove('hidden');
+          document.getElementById('hideRoleBtn').classList.remove('hidden');
+        }
+      });
+    }
+
+    function hideRole() {
+      document.getElementById('roleDisplay').classList.add('hidden');
+      document.getElementById('hideRoleBtn').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
