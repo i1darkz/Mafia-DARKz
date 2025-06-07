@@ -13,7 +13,17 @@
     button { background-color: #333; color: white; cursor: pointer; }
     button:hover { background-color: #555; }
     #main { margin-top: 30px; }
-    #roleDisplay { margin-top: 20px; font-size: 20px; color: yellow; display: none; }
+    #roleDisplay {
+      margin-top: 20px;
+      font-size: 20px;
+      color: yellow;
+      display: none;
+      animation: zoomIn 0.5s ease-in-out;
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
     .centered { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; }
   </style>
 </head>
@@ -98,6 +108,13 @@
         if (!snap.exists()) {
           alert("🚫 تمت إزالتك من الجلسة");
           window.location.href = "index.html";
+        }
+      });
+
+      db.ref("broadcast").on("value", snapshot => {
+        const msg = snapshot.val();
+        if (msg) {
+          alert("📢 تنبيه من الأدمن:\n" + msg);
         }
       });
     }

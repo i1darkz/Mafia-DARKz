@@ -16,6 +16,7 @@
     h1 {
       margin-bottom: 40px;
       font-size: 32px;
+      animation: fadeInDown 1s ease-in-out;
     }
     button {
       display: block;
@@ -28,10 +29,20 @@
       background-color: #333;
       color: white;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: transform 0.3s ease, background 0.3s ease;
+      animation: fadeInUp 0.8s ease-in-out;
     }
     button:hover {
       background-color: #555;
+      transform: scale(1.05);
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
