@@ -12,15 +12,19 @@
     button { background-color: #333; color: white; cursor: pointer; }
     button:hover { background-color: #555; }
     #roleBox { margin-top: 30px; display: none; }
+    #endedMsg { display: none; color: red; font-weight: bold; margin-top: 20px; }
   </style>
 </head>
 <body>
   <h1>🎭 Darkz Mafia - Player</h1>
-  <input type="text" id="sessionId" placeholder="Session ID">
-  <input type="text" id="playerName" placeholder="Your Name (English only)">
-  <button onclick="joinGame()">🚪 Join Game</button>
+  <div id="inputSection">
+    <input type="text" id="sessionId" placeholder="Session ID">
+    <input type="text" id="playerName" placeholder="Your Name (English only)">
+    <button onclick="joinGame()">🚪 Join Game</button>
+  </div>
 
   <div id="waitingMsg">⌛ بانتظار بدء اللعبة...</div>
+  <div id="endedMsg">❌ تم إنهاء اللعبة من قبل الهوست</div>
   <div id="roleBox">
     <h2>🎲 دورك:</h2>
     <p id="yourRole" style="font-size: 24px; color: yellow;"></p>
@@ -69,8 +73,11 @@
         newRef.set({ name: playerName });
 
         document.getElementById('waitingMsg').style.display = 'block';
+        document.getElementById('inputSection').style.display = 'none';
+
         db.ref(`status/${sessionId}`).on('value', snap => {
-          if (snap.val() === 'started') {
+          const status = snap.val();
+          if (status === 'started') {
             db.ref(`sessions/${sessionId}/${playerName}`).on('value', roleSnap => {
               if (roleSnap.exists()) {
                 document.getElementById('yourRole').textContent = roleSnap.val();
@@ -78,6 +85,19 @@
                 document.getElementById('roleBox').style.display = 'block';
               }
             });
+          } else if (status === 'ended') {
+            document.getElementById('waitingMsg').style.display = 'none';
+            document.getElementById('roleBox').style.display = 'none';
+            document.getElementById('endedMsg').style.display = 'block';
+
+            setTimeout(() => {
+              document.getElementById('endedMsg').style.display = 'none';
+              document.getElementById('inputSection').style.display = 'block';
+              currentSession = '';
+              currentName = '';
+              document.getElementById('sessionId').value = '';
+              document.getElementById('playerName').value = '';
+            }, 4000);
           }
         });
       });
@@ -85,11 +105,7 @@
 
     function toggleRole() {
       const roleBox = document.getElementById('yourRole');
-      if (roleBox.style.visibility === 'hidden') {
-        roleBox.style.visibility = 'visible';
-      } else {
-        roleBox.style.visibility = 'hidden';
-      }
+      roleBox.style.visibility = roleBox.style.visibility === 'hidden' ? 'visible' : 'hidden';
     }
   </script>
 </body>
