@@ -19,9 +19,9 @@
   <h1>🎮 Darkz Mafia - Player</h1>
   <input type="text" id="sessionId" placeholder="Session ID (EN only)">
   <input type="text" id="playerName" placeholder="Your Name (EN only)">
-  <button onclick="joinGame()">🚪 Join Game</button>
+  <button onclick="joinGame()">✅ Join</button>
   <div id="waitingMessage" class="hidden">⏳ Waiting for game to start...</div>
-  <button id="showRoleBtn" class="hidden" onclick="showRole()">👁 Show Role</button>
+  <button id="showRoleBtn" class="hidden" onclick="showRole()">👁️ Show Role</button>
   <button id="hideRoleBtn" class="hidden" onclick="hideRole()">🙈 Hide Role</button>
   <div id="roleDisplay" class="hidden"></div>
 
@@ -41,6 +41,7 @@
 
     let sessionId = '';
     let playerName = '';
+    let playerKey = '';
 
     function joinGame() {
       sessionId = document.getElementById('sessionId').value.trim();
@@ -59,9 +60,18 @@
           return;
         }
 
-        playerRef.push({ name: playerName });
+        const newRef = playerRef.push({ name: playerName });
+        playerKey = newRef.key;
         document.getElementById('waitingMessage').classList.remove('hidden');
         monitorGame();
+      });
+
+      // إذا تم حذف اللاعب يرجع
+      db.ref(`players/${sessionId}`).on('child_removed', snap => {
+        if (snap.key === playerKey) {
+          alert('🛑 تم حذفك من الجلسة بواسطة الهوست.');
+          window.location.href = 'index.html';
+        }
       });
     }
 
@@ -71,8 +81,8 @@
         if (status === 'started') {
           document.getElementById('showRoleBtn').classList.remove('hidden');
         } else if (status === 'ended') {
-          alert('🛑 The game has ended!');
-          window.location.reload();
+          alert('🛑 اللعبة انتهت!');
+          window.location.href = 'index.html';
         }
       });
     }
@@ -81,7 +91,7 @@
       db.ref(`sessions/${sessionId}/${playerName}`).once('value', snap => {
         const role = snap.val();
         if (role) {
-          document.getElementById('roleDisplay').textContent = `🎭 Your Role: ${role}`;
+          document.getElementById('roleDisplay').textContent = `🎭 دورك: ${role}`;
           document.getElementById('roleDisplay').classList.remove('hidden');
           document.getElementById('hideRoleBtn').classList.remove('hidden');
         }
