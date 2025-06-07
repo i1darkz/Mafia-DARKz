@@ -7,22 +7,24 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 30px; }
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
     input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
     button { background-color: #333; color: white; cursor: pointer; }
     button:hover { background-color: #555; }
-    #roleBox { background: #222; border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
+    #roleBox { margin-top: 30px; display: none; }
   </style>
 </head>
 <body>
-  <h1>👤 Darkz Mafia - Player</h1>
-  <input type="text" id="name" placeholder="اسمك">
-  <input type="text" id="session" placeholder="رمز الجلسة">
-  <button onclick="joinGame()">🚪 انضم</button>
-  <div id="waiting" style="display:none; margin-top: 20px;">⏳ بانتظار بدء اللعبة...</div>
+  <h1>🎭 Darkz Mafia - Player</h1>
+  <input type="text" id="sessionId" placeholder="Session ID">
+  <input type="text" id="playerName" placeholder="Your Name (English only)">
+  <button onclick="joinGame()">🚪 Join Game</button>
+
+  <div id="waitingMsg">⌛ بانتظار بدء اللعبة...</div>
   <div id="roleBox">
-    <div id="yourRole" style="font-size: 20px; color: yellow;">انت: ...</div>
-    <button onclick="toggleRole()">👁️‍🗨️ عرض / إخفاء الدور</button>
+    <h2>🎲 دورك:</h2>
+    <p id="yourRole" style="font-size: 24px; color: yellow;"></p>
+    <button onclick="toggleRole()">👁️ إظهار / إخفاء</button>
   </div>
 
   <script>
@@ -39,38 +41,54 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let playerName = '';
-    let sessionId = '';
+    let currentSession = '';
+    let currentName = '';
 
     function joinGame() {
-      playerName = document.getElementById('name').value.trim();
-      sessionId = document.getElementById('session').value.trim();
-      if (!playerName || !sessionId) return alert('اكتب الاسم والجلسة');
+      const sessionId = document.getElementById('sessionId').value.trim();
+      const playerName = document.getElementById('playerName').value.trim();
 
-      const playerRef = db.ref(`players/${sessionId}`).push();
-      playerRef.set({ name: playerName });
+      if (!sessionId || !playerName) return alert('اكتب الكود واسمك');
+      if (!/^[a-zA-Z0-9_]+$/.test(playerName)) return alert('الاسم يجب أن يكون باللغة الإنجليزية فقط');
 
-      document.getElementById('waiting').style.display = 'block';
+      currentSession = sessionId;
+      currentName = playerName;
 
-      db.ref(`status/${sessionId}`).on('value', snapshot => {
-        if (snapshot.val() === 'started') {
-          db.ref(`sessions/${sessionId}/${playerName}`).once('value', snap => {
-            if (snap.exists()) {
-              document.getElementById('yourRole').textContent = `🎭 دورك: ${snap.val()}`;
-              document.getElementById('roleBox').style.display = 'block';
-              document.getElementById('waiting').style.display = 'none';
-            }
-          });
+      const playerRef = db.ref(`players/${sessionId}`);
+      playerRef.once('value', snapshot => {
+        let exists = false;
+        snapshot.forEach(child => {
+          if (child.val().name.toLowerCase() === playerName.toLowerCase()) exists = true;
+        });
+        if (exists) {
+          alert('الاسم مستخدم بالفعل');
+          return;
         }
+
+        const newRef = playerRef.push();
+        newRef.set({ name: playerName });
+
+        document.getElementById('waitingMsg').style.display = 'block';
+        db.ref(`status/${sessionId}`).on('value', snap => {
+          if (snap.val() === 'started') {
+            db.ref(`sessions/${sessionId}/${playerName}`).on('value', roleSnap => {
+              if (roleSnap.exists()) {
+                document.getElementById('yourRole').textContent = roleSnap.val();
+                document.getElementById('waitingMsg').style.display = 'none';
+                document.getElementById('roleBox').style.display = 'block';
+              }
+            });
+          }
+        });
       });
     }
 
     function toggleRole() {
-      const role = document.getElementById('yourRole');
-      if (role.style.visibility === 'hidden') {
-        role.style.visibility = 'visible';
+      const roleBox = document.getElementById('yourRole');
+      if (roleBox.style.visibility === 'hidden') {
+        roleBox.style.visibility = 'visible';
       } else {
-        role.style.visibility = 'hidden';
+        roleBox.style.visibility = 'hidden';
       }
     }
   </script>
