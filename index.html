@@ -2,17 +2,42 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>Darkz Mafia</title>
+  <meta charset="UTF-8" />
+  <title>Darkz Mafia - الرئيسية</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { background-color: #111; color: #fff; font-family: sans-serif; text-align: center; padding-top: 50px; }
-    button { margin: 20px; padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; background-color: #333; color: white; cursor: pointer; }
-    button:hover { background-color: #555; }
+    body {
+      background-color: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 80px;
+    }
+    h1 {
+      margin-bottom: 40px;
+      font-size: 32px;
+    }
+    button {
+      display: block;
+      width: 250px;
+      margin: 20px auto;
+      padding: 15px;
+      font-size: 20px;
+      border: none;
+      border-radius: 12px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>🎮 Welcome to Darkz Mafia</h1>
+  <h1>🎮 Darkz Mafia</h1>
   <button onclick="location.href='host.html'">👑 إنشاء جلسة</button>
-  <button onclick="location.href='player_with_removal_check.html'">🙋‍♂️ الانضمام إلى جلسة</button>
+  <button onclick="location.href='player.html'">🙋‍♂️ الانضمام إلى جلسة</button>
 </body>
 </html>
