@@ -4,8 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Darkz Mafia - Player</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+// 🔔 مراقبة إشعار الحذف
+firebase.database().ref(`notifications/${sessionId}/${userKey}`).on('value', snap => {
+  if (snap.exists() && snap.val() === 'removed') {
+    alert("🚫 تم حذفك من الجلسة!");
+    window.location.href = "index.html";
+  }
+});
+
+</script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
+// 🔔 مراقبة إشعار الحذف
+firebase.database().ref(`notifications/${sessionId}/${userKey}`).on('value', snap => {
+  if (snap.exists() && snap.val() === 'removed') {
+    alert("🚫 تم حذفك من الجلسة!");
+    window.location.href = "index.html";
+  }
+});
+
+</script>
   <style>
     body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
     input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
@@ -102,6 +120,15 @@
       document.getElementById('roleDisplay').classList.add('hidden');
       document.getElementById('hideRoleBtn').classList.add('hidden');
     }
-  </script>
+  
+// 🔔 مراقبة إشعار الحذف
+firebase.database().ref(`notifications/${sessionId}/${userKey}`).on('value', snap => {
+  if (snap.exists() && snap.val() === 'removed') {
+    alert("🚫 تم حذفك من الجلسة!");
+    window.location.href = "index.html";
+  }
+});
+
+</script>
 </body>
 </html>

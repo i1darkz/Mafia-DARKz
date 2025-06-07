@@ -88,7 +88,8 @@
 
     function removePlayer(playerKey) {
       if (!currentSessionId) return;
-      db.ref(`players/${currentSessionId}/${playerKey}`).remove();
+      db.ref(`players/${currentSessionId}/${playerKey}`).update({ removed: true });
+      db.ref(`notifications/${currentSessionId}/${playerKey}`).set("removed");
     }
 
     function copySessionId() {
@@ -117,7 +118,9 @@
         ref.once('value', snapshot => {
           const players = [];
           snapshot.forEach(child => {
+            if (!child.val().removed) {
             players.push({ key: child.key, name: child.val().name });
+          }
           });
 
           const shuffled = [...players].sort(() => 0.5 - Math.random());
