@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Darkz Mafia - Host</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -18,7 +19,6 @@
       position: absolute; top: 5px; right: 8px; background: red; color: white; border: none;
       border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer;
     }
-    #adminPanel { display: none; margin-top: 30px; }
   </style>
 </head>
 <body>
@@ -31,16 +31,8 @@
   <button onclick="startGame()">🚀 ابدأ اللعبة</button>
   <button onclick="redistributeGame()">🔁 إعادة التوزيع</button>
   <button onclick="endGame()">🛑 إنهاء اللعبة</button>
-  <button onclick="requestAdminLogin()">🔐 دخول كأدمن</button>
   <div id="statusDisplay" style="margin-top:10px; font-weight:bold;"></div>
   <div class="player-list" id="playerList"></div>
-
-  <div id="adminPanel">
-    <h3>🛠 لوحة تحكم الأدمن</h3>
-    <div id="sessionsList"></div>
-    <input type="text" id="broadcastMsg" placeholder="رسالة لكل اللاعبين">
-    <button onclick="broadcastMessage()">📢 إرسال تنبيه</button>
-  </div>
 
   <script>
     let currentSessionId = '';
@@ -66,11 +58,6 @@
       }
       currentSessionId = id;
       document.getElementById('sessionNotice').textContent = `🆔 الجلسة الحالية: ${id}`;
-
-      db.ref(`status/${id}`).once('value', snap => {
-        if (!snap.exists()) db.ref(`status/${id}`).set('waiting');
-      });
-
       db.ref(`players/${id}`).on('value', snapshot => {
         const playerList = document.getElementById('playerList');
         playerList.innerHTML = '';
@@ -156,43 +143,20 @@
       document.getElementById('playerList').innerHTML = '';
     }
 
-    function requestAdminLogin() {
-      const pass = prompt("🔐 أدخل كلمة مرور الأدمن:");
-      if (pass === "darkz123") {
-        document.getElementById('adminPanel').style.display = 'block';
-        loadSessions();
-      } else {
-        alert("❌ كلمة المرور خاطئة");
-      }
-    }
-
-    function loadSessions() {
-      const list = document.getElementById('sessionsList');
-      list.innerHTML = '';
-      db.ref('sessions').once('value', snapshot => {
+    function renderPlayers(sessionId) {
+      const sessionRef = db.ref(`sessions/${sessionId}`);
+      sessionRef.once('value', snapshot => {
+        const list = document.getElementById('playerList');
+        list.innerHTML = '';
         snapshot.forEach(child => {
-          const sid = child.key;
-          const div = document.createElement('div');
-          div.innerHTML = `🆔 ${sid} <button onclick="deleteSession('${sid}')">🗑 حذف</button>`;
-          list.appendChild(div);
+          const player = child.key;
+          const role = child.val();
+          const item = document.createElement('div');
+          item.className = 'player-item';
+          item.innerHTML = `<strong>${player}</strong><span class='role-label'>${role}</span>`;
+          list.appendChild(item);
         });
       });
-    }
-
-    function deleteSession(sid) {
-      if (confirm(`حذف الجلسة ${sid}?`)) {
-        db.ref(`sessions/${sid}`).remove();
-        db.ref(`players/${sid}`).remove();
-        db.ref(`status/${sid}`).remove();
-        loadSessions();
-      }
-    }
-
-    function broadcastMessage() {
-      const msg = document.getElementById('broadcastMsg').value.trim();
-      if (!msg) return alert('اكتب رسالة أولاً');
-      db.ref('broadcast').set(msg);
-      alert('📢 تم الإرسال!');
     }
   </script>
 </body>
