@@ -44,7 +44,7 @@
     <button onclick="copySessionId()">📋 نسخ الكود</button>
     <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
     <button onclick="startGame()">🚀 ابدأ اللعبة</button>
-    <button onclick="redistributeGame()">🔁 إعادة التوزيع</button>
+    
     <button onclick="endGame()">🛑 إنهاء اللعبة</button>
   </div>
   <div class="player-list" id="playerList"></div>
@@ -99,7 +99,39 @@
       });
     }
 
+    
     function startGame() {
+      if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
+      const sessionId = currentSessionId;
+      const mafiaCount = parseInt(document.getElementById('mafiaCount').value) || 2;
+      const ref = db.ref(`players/${sessionId}`);
+      const sessionRef = db.ref(`sessions/${sessionId}`);
+      sessionRef.remove(); // نحذف الأدوار السابقة فقط، اللاعبين يبقون
+
+      ref.once('value', snapshot => {
+        const players = [];
+        snapshot.forEach(child => {
+          players.push({ key: child.key, name: child.val().name });
+        });
+
+        const shuffled = [...players].sort(() => 0.5 - Math.random());
+        const roles = [];
+        for (let i = 0; i < mafiaCount; i++) roles.push('مافيا');
+        roles.push('دكتور');
+        roles.push('شايب');
+        while (roles.length < players.length) roles.push('مواطن');
+
+        shuffled.forEach((player, i) => {
+          const role = roles[i] || 'مواطن';
+          sessionRef.child(player.name).set(role);
+        });
+
+        db.ref(`status/${sessionId}`).set('started');
+        renderPlayers(sessionId);
+        alert('✅ تم توزيع الأدوار بنجاح!');
+      });
+    }
+
       if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
       const mafiaCount = parseInt(document.getElementById('mafiaCount').value) || 2;
@@ -139,7 +171,15 @@
       });
     }
 
+    
     function endGame() {
+      const sessionId = document.getElementById('sessionId').value.trim();
+      db.ref(`sessions/${sessionId}`).remove();
+      db.ref(`players/${sessionId}`).remove(); // نحذف اللاعبين فقط إذا انتهت الجلسة فعلياً
+      db.ref(`status/${sessionId}`).set('ended');
+      document.getElementById('playerList').innerHTML = '';
+    }
+
       const sessionId = document.getElementById('sessionId').value.trim();
       db.ref(`sessions/${sessionId}`).remove();
       db.ref(`status/${sessionId}`).set('ended');
