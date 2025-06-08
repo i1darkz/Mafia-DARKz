@@ -1,25 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Darkz Mafia - Host</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
-    function startVoting() {
-      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
-      db.ref(`status/${currentSessionId}`).set('voting');
-      alert("🗳️ تم تفعيل التصويت");
-    }
-    </script>
-    
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
-    function startVoting() {
-      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
-      db.ref(`status/${currentSessionId}`).set('voting');
-      alert("🗳️ تم تفعيل التصويت");
-    }
-    </script>
-    
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
     input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
@@ -78,22 +65,41 @@
     }
 
     function listenLivePlayers(sessionId) {
-      db.ref(`players/${sessionId}`).on('value', snap => {
-        const list = document.getElementById('playerList');
-        list.innerHTML = '';
-        snap.forEach(child => {
-          const data = child.val();
-          const name = data.name;
-          const isDead = data.dead === true;
-          const item = document.createElement('div');
-          item.className = 'player-item';
-          item.innerHTML = `
-            <strong>${name}</strong>
-            <span class='role-label'>${isDead ? '💀 ميت' : 'بانتظار التوزيع'}</span>
-            ${!isDead ? `<button onclick='markDead("${child.key}")'>☠️ إخراج</button>` : ''}
-            <button class='remove-btn' onclick='removePlayer("${child.key}")'>×</button>
-          `;
-          list.appendChild(item);
+      const playersRef = db.ref(`players/${sessionId}`);
+      const votesRef = db.ref(`votes/${sessionId}`);
+      const rolesRef = db.ref(`sessions/${sessionId}`);
+
+      playersRef.on("value", playerSnap => {
+        votesRef.once("value").then(votesSnap => {
+          rolesRef.once("value").then(rolesSnap => {
+            const voteCount = {};
+            votesSnap.forEach(v => {
+              const votedFor = v.val().votedFor;
+              if (votedFor) voteCount[votedFor] = (voteCount[votedFor] || 0) + 1;
+            });
+
+            const list = document.getElementById('playerList');
+            list.innerHTML = '';
+            playerSnap.forEach(child => {
+              const data = child.val();
+              const name = data.name;
+              const isDead = data.dead === true;
+              const role = rolesSnap.child(name).val() || "❓";
+              const votes = voteCount[name] || 0;
+
+              const item = document.createElement('div');
+              item.className = 'player-item';
+              item.innerHTML = `
+                <strong>${name}</strong>
+                <span class='role-label'>${isDead ? '💀 ميت' : 'بانتظار التوزيع'}</span>
+                <div style='margin: 5px 0;'>🎭 ${role}</div>
+                <div style='margin: 5px 0;'>🗳️ تصويت: ${votes}</div>
+                ${!isDead ? `<button onclick='markDead("${child.key}")'>☠️ إخراج</button>` : ''}
+                <button class='remove-btn' onclick='removePlayer("${child.key}")'>×</button>
+              `;
+              list.appendChild(item);
+            });
+          });
         });
       });
     }
@@ -101,7 +107,6 @@
     function markDead(key) {
       if (!currentSessionId) return;
       db.ref(`players/${currentSessionId}/${key}`).update({ dead: true });
-      db.ref(`votes/${currentSessionId}`).remove();
     }
 
     function removePlayer(key) {
@@ -109,7 +114,10 @@
     }
 
     function startGame() {
+      if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
+      const mafiaCount = parseInt(document.getElementById('mafiaCount').value) || 2;
+
       db.ref(`players/${sessionId}`).once('value', snapshot => {
         const players = [];
         snapshot.forEach(child => {
@@ -117,7 +125,10 @@
         });
 
         const shuffled = [...players].sort(() => 0.5 - Math.random());
-        const roles = ['مافيا', 'دكتور', 'شايب'];
+        const roles = [];
+        for (let i = 0; i < mafiaCount; i++) roles.push('مافيا');
+        roles.push('دكتور');
+        roles.push('شايب');
         while (roles.length < players.length) roles.push('مواطن');
 
         const sessionRef = db.ref(`sessions/${sessionId}`);
@@ -138,6 +149,12 @@
       });
     }
 
+    function startVoting() {
+      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
+      db.ref(`status/${currentSessionId}`).set('voting');
+      alert("🗳️ تم تفعيل التصويت");
+    }
+
     function endGame() {
       if (!currentSessionId) return;
       db.ref(`sessions/${currentSessionId}`).remove();
@@ -145,13 +162,6 @@
       db.ref(`status/${currentSessionId}`).set('ended');
       document.getElementById('playerList').innerHTML = '';
     }
-  
-    function startVoting() {
-      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
-      db.ref(`status/${currentSessionId}`).set('voting');
-      alert("🗳️ تم تفعيل التصويت");
-    }
-    </script>
-    
+  </script>
 </body>
 </html>
