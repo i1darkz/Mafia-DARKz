@@ -55,7 +55,12 @@
     <div id="statusText">⏳ بانتظار بدء اللعبة...</div>
     <button class="btn hidden" id="revealBtn" onclick="revealRole()">👁 عرض دوري</button>
     <div id="roleBox" style="color: yellow; font-size: 20px; margin-top: 20px;"></div>
-    <div class="vote-box hidden" id="voteBox"></div>
+    <div class="vote-box hidden" id="voteBox">
+<div class="vote-item" style="margin-bottom: 20px;">
+  ⏭ <strong>تخطي</strong>
+  <button class="btn" onclick="voteFor('skip')">⏭ تصويت للتخطي</button>
+</div>
+</div>
     <button class="btn hidden" id="exitBtn" onclick="exitGame()">🚪 خروج</button>
   </div>
 
