@@ -2,45 +2,28 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>Player - Darkz Mafia</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darkz Mafia - Player</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding-top: 40px; }
-    input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
-    button { background-color: #333; color: white; cursor: pointer; }
-    button:hover { background-color: #555; }
-    #main { margin-top: 30px; }
-    #roleDisplay {
-      margin-top: 20px;
-      font-size: 20px;
-      color: yellow;
-      display: none;
-      animation: zoomIn 0.5s ease-in-out;
-    }
-    @keyframes zoomIn {
-      from { transform: scale(0.5); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .centered { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; }
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+    .hidden { display: none; }
+    .reveal-btn { margin-top: 20px; padding: 12px 20px; border-radius: 10px; font-size: 18px; background-color: #444; color: white; border: none; cursor: pointer; }
+    .reveal-btn:hover { background-color: #666; }
+    .role-box { margin-top: 30px; font-size: 20px; color: yellow; display: none; }
+    .player-name { font-size: 24px; color: #0f0; margin-top: 10px; }
+    #exitBtn { margin-top: 20px; background: red; }
   </style>
 </head>
 <body>
-  <h1>🙋‍♂️ Player - Darkz Mafia</h1>
-  <div id="loginForm">
-    <input type="text" id="sessionInput" placeholder="Session ID">
-    <input type="text" id="nameInput" placeholder="اسمك (بالإنجليزية)">
-    <button onclick="joinGame()">🚪 دخول</button>
-  </div>
-
-  <div id="main" style="display:none;" class="centered">
-    <h2 id="waitingText">⏳ بانتظار بدء اللعبة...</h2>
-    <button id="showRoleBtn" onclick="showRole()" style="display:none;">🎭 عرض دوري</button>
-    <div id="roleDisplay"></div>
-    <button onclick="leaveGame()">❌ خروج</button>
-  </div>
+  <h1>🎮 Darkz Mafia - Player</h1>
+  <div id="waitingText">⏳ بانتظار بدء اللعبة...</div>
+  <div id="playerName" class="player-name hidden"></div>
+  <button id="revealBtn" class="reveal-btn hidden" onclick="revealRole()">👁‍🗨 عرض دوري</button>
+  <div id="roleBox" class="role-box"></div>
+  <button id="exitBtn" class="reveal-btn hidden" onclick="exitGame()">🚪 خروج</button>
 
   <script>
     const firebaseConfig = {
@@ -52,88 +35,62 @@
       messagingSenderId: "555156171160",
       appId: "1:555156171160:web:9e5cd8ab8eb9ba7661423ed"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let playerName = '';
-    let sessionId = '';
-    let playerKey = '';
 
-    function joinGame() {
-      sessionId = document.getElementById("sessionInput").value.trim();
-      playerName = document.getElementById("nameInput").value.trim();
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    const playerName = urlParams.get('name');
 
-      if (!sessionId || !playerName) return alert("أدخل البيانات كاملة");
-      if (/\s/.test(playerName)) return alert("الاسم لا يجب أن يحتوي على مسافات");
-      if (!/^[a-zA-Z0-9_]+$/.test(playerName)) return alert("الاسم بالإنجليزية فقط");
+    document.getElementById("playerName").textContent = `👤 ${playerName}`;
+    document.getElementById("playerName").classList.remove("hidden");
 
-      const ref = db.ref(`players/${sessionId}`);
-      ref.once("value", snapshot => {
-        let exists = false;
-        snapshot.forEach(child => {
-          if (child.val().name === playerName) exists = true;
-        });
-        if (exists) {
-          alert("❗ هذا الاسم مستخدم مسبقًا");
-        } else {
-          const newPlayer = ref.push({ name: playerName });
-          playerKey = newPlayer.key;
-          document.getElementById("loginForm").style.display = "none";
-          document.getElementById("main").style.display = "block";
-          monitorSession();
-        }
-      });
-    }
+    const roleBox = document.getElementById("roleBox");
+    const revealBtn = document.getElementById("revealBtn");
+    const waitingText = document.getElementById("waitingText");
+    const exitBtn = document.getElementById("exitBtn");
 
-    function monitorSession() {
-      db.ref(`status/${sessionId}`).on("value", snapshot => {
-        const status = snapshot.val();
-        const showRoleBtn = document.getElementById("showRoleBtn");
-        if (status === "started") {
-          showRoleBtn.style.display = "block";
-          document.getElementById("waitingText").style.display = "none";
-        } else {
-          showRoleBtn.style.display = "none";
-          document.getElementById("waitingText").style.display = "block";
-        }
-      });
-
-      db.ref(`sessions/${sessionId}/${playerName}`).on("value", snapshot => {
-        const role = snapshot.val();
-        if (role === null) return;
-        window.playerRole = role;
-      });
-
-      db.ref(`players/${sessionId}/${playerKey}`).on("value", snap => {
-        if (!snap.exists()) {
-          alert("🚫 تمت إزالتك من الجلسة");
-          window.location.href = "index.html";
-        }
-      });
-
-      db.ref("broadcast").on("value", snapshot => {
-        const msg = snapshot.val();
-        if (msg) {
-          alert("📢 تنبيه من الأدمن:\n" + msg);
-        }
-      });
-    }
-
-    function showRole() {
-      if (!window.playerRole) return alert("❗ لم يتم تعيين دورك بعد");
-      const roleDiv = document.getElementById("roleDisplay");
-      roleDiv.textContent = `🎭 دورك: ${window.playerRole}`;
-      roleDiv.style.display = "block";
-      setTimeout(() => roleDiv.style.display = "none", 5000);
-    }
-
-    function leaveGame() {
-      if (sessionId && playerKey) {
-        db.ref(`players/${sessionId}/${playerKey}`).remove().then(() => {
-          window.location.href = "index.html";
-        });
+    db.ref(`status/${sessionId}`).on('value', snap => {
+      const status = snap.val();
+      if (status === 'started') {
+        waitingText.style.display = 'none';
+        revealBtn.classList.remove('hidden');
+        exitBtn.classList.remove('hidden');
+      } else {
+        waitingText.textContent = status === 'ended' ? "❌ اللعبة انتهت" : "⏳ بانتظار بدء اللعبة...";
+        revealBtn.classList.add('hidden');
+        roleBox.style.display = 'none';
       }
+    });
+
+    function revealRole() {
+      const path = `sessions/${sessionId}/${playerName}`;
+      db.ref(path).once('value', snap => {
+        const role = snap.val();
+        roleBox.textContent = `🎭 دورك: ${role}`;
+        roleBox.style.display = 'block';
+        setTimeout(() => { roleBox.style.display = 'none'; }, 5000);
+      });
     }
+
+    function exitGame() {
+      db.ref(`players/${sessionId}`).once('value', snap => {
+        snap.forEach(child => {
+          if (child.val().name === playerName) {
+            db.ref(`players/${sessionId}/${child.key}`).remove().then(() => {
+              window.location.href = 'index.html';
+            });
+          }
+        });
+      });
+    }
+
+    db.ref(`players/${sessionId}`).on('child_removed', snap => {
+      if (snap.val().name === playerName) {
+        alert("🚫 تم إخراجك من الجلسة بواسطة الهوست");
+        window.location.href = 'index.html';
+      }
+    });
   </script>
 </body>
 </html>
