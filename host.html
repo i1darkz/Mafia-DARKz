@@ -58,41 +58,23 @@
       if (!id) return alert('أدخل معرف الجلسة (Session ID)');
       currentSessionId = id;
       document.getElementById('sessionNotice').textContent = `🆔 الجلسة الحالية: ${id}`;
-      renderPlayers(id);
+      listenLivePlayers(id);
     }
 
-    function renderPlayers(sessionId) {
-      const playersRef = db.ref(`players/${sessionId}`);
-      const votesRef = db.ref(`votes/${sessionId}`);
-      const rolesRef = db.ref(`sessions/${sessionId}`);
-
-      Promise.all([
-        playersRef.once('value'),
-        votesRef.once('value'),
-        rolesRef.once('value')
-      ]).then(([playersSnap, votesSnap, rolesSnap]) => {
-        const voteCount = {};
-        votesSnap.forEach(v => {
-          const votedFor = v.val().votedFor;
-          if (votedFor) voteCount[votedFor] = (voteCount[votedFor] || 0) + 1;
-        });
-
+    function listenLivePlayers(sessionId) {
+      db.ref(`players/${sessionId}`).on('value', snap => {
         const list = document.getElementById('playerList');
         list.innerHTML = '';
-        playersSnap.forEach(child => {
+        snap.forEach(child => {
           const data = child.val();
           const name = data.name;
-          const role = rolesSnap.child(name).val() || '❓';
           const isDead = data.dead === true;
-          const votes = voteCount[name] || 0;
-
           const item = document.createElement('div');
           item.className = 'player-item';
           item.innerHTML = `
             <strong>${name}</strong>
-            <span class='role-label'>${role}</span>
-            <div style='margin-top:5px;'>📊 تصويت: ${votes}</div>
-            ${!isDead ? `<button onclick='markDead("${child.key}")'>☠️ إخراج</button>` : `<div style='color:red'>💀 ميت</div>`}
+            <span class='role-label'>${isDead ? '💀 ميت' : 'بانتظار التوزيع'}</span>
+            ${!isDead ? `<button onclick='markDead("${child.key}")'>☠️ إخراج</button>` : ''}
             <button class='remove-btn' onclick='removePlayer("${child.key}")'>×</button>
           `;
           list.appendChild(item);
@@ -103,19 +85,15 @@
     function markDead(key) {
       if (!currentSessionId) return;
       db.ref(`players/${currentSessionId}/${key}`).update({ dead: true });
-      db.ref(`votes/${currentSessionId}`).remove(); // Reset all votes
-      renderPlayers(currentSessionId);
+      db.ref(`votes/${currentSessionId}`).remove();
     }
 
     function removePlayer(key) {
       db.ref(`players/${currentSessionId}/${key}`).remove();
-      renderPlayers(currentSessionId);
     }
 
     function startGame() {
-      if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
-
       db.ref(`players/${sessionId}`).once('value', snapshot => {
         const players = [];
         snapshot.forEach(child => {
@@ -140,7 +118,6 @@
           });
         });
 
-        setTimeout(() => renderPlayers(sessionId), 500);
         alert('✅ تم توزيع الأدوار!');
       });
     }

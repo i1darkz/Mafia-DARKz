@@ -4,8 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Darkz Mafia - Player</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+    function listenForDeath() {
+      db.ref(`players/${sessionId}/${playerKey}`).on("value", snap => {
+        const data = snap.val();
+        if (!data) {
+          alert("🚫 تم إخراجك من الجلسة");
+          window.location.href = "index.html";
+        } else if (data.dead === true) {
+          document.body.innerHTML = "<h2 style='color:red;'>💀 تم قتلك</h2><p>يرجى الانتظار حتى تبدأ جولة جديدة</p>";
+        }
+      });
+    }
+
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
+    function listenForDeath() {
+      db.ref(`players/${sessionId}/${playerKey}`).on("value", snap => {
+        const data = snap.val();
+        if (!data) {
+          alert("🚫 تم إخراجك من الجلسة");
+          window.location.href = "index.html";
+        } else if (data.dead === true) {
+          document.body.innerHTML = "<h2 style='color:red;'>💀 تم قتلك</h2><p>يرجى الانتظار حتى تبدأ جولة جديدة</p>";
+        }
+      });
+    }
+
+  </script>
   <style>
     body { background: #111; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
     .hidden { display: none; }
@@ -79,6 +105,7 @@
         listenForRole();
         listenForVoteList();
         listenForKicked();
+        listenForDeath();
       });
     }
 
@@ -156,6 +183,19 @@
         }
       });
     }
+  
+    function listenForDeath() {
+      db.ref(`players/${sessionId}/${playerKey}`).on("value", snap => {
+        const data = snap.val();
+        if (!data) {
+          alert("🚫 تم إخراجك من الجلسة");
+          window.location.href = "index.html";
+        } else if (data.dead === true) {
+          document.body.innerHTML = "<h2 style='color:red;'>💀 تم قتلك</h2><p>يرجى الانتظار حتى تبدأ جولة جديدة</p>";
+        }
+      });
+    }
+
   </script>
 </body>
 </html>
