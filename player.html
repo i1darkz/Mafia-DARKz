@@ -123,6 +123,10 @@
           document.getElementById("voteBox").classList.remove("hidden");
         } else if (status === "ended") {
           document.getElementById("statusText").innerText = "❌ اللعبة انتهت";
+          setTimeout(() => window.location.href = "index.html", 3000);
+          return;
+        }
+          document.getElementById("statusText").innerText = "❌ اللعبة انتهت";
           document.getElementById("voteBox").classList.add("hidden");
           document.getElementById("revealBtn").classList.add("hidden");
         } else {
