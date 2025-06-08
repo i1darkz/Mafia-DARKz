@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -13,7 +12,7 @@
     button { background-color: #333; color: white; cursor: pointer; }
     button:hover { background-color: #555; }
     .player-list { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
-    .player-item { background: #222; border-radius: 8px; padding: 10px 15px; margin: 5px; min-width: 160px; text-align: center; position: relative; }
+    .player-item { background: #222; border-radius: 8px; padding: 10px 15px; margin: 5px; min-width: 120px; text-align: center; position: relative; }
     .role-label { display: block; font-size: 14px; margin-top: 5px; color: yellow; }
     .remove-btn {
       position: absolute;
@@ -31,15 +30,23 @@
   </style>
 </head>
 <body>
+  <style>
+    .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+    .controls input[type='number'] { background: white; color: #111; }
+  </style>
   <h1>🎮 Darkz Mafia - Host</h1>
   <input type="text" id="sessionId" placeholder="Session ID">
   <div id="sessionNotice" style="margin-top: 5px; font-size: 14px; color: #0f0;"></div>
-  <input type="number" id="mafiaCount" placeholder="مافيا" min="1" max="10">
-  <button onclick="copySessionId()">📋 نسخ الكود</button>
-  <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
-  <button onclick="startGame()">🚀 ابدأ اللعبة</button>
-  <button onclick="redistributeGame()">🔁 إعادة التوزيع</button>
-  <button onclick="endGame()">🛑 إنهاء اللعبة</button>
+  
+  <div class="controls">
+    <input type="number" id="mafiaCount" placeholder="مافيا" min="1" max="10">
+    
+    <button onclick="copySessionId()">📋 نسخ الكود</button>
+    <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
+    <button onclick="startGame()">🚀 ابدأ اللعبة</button>
+    <button onclick="redistributeGame()">🔁 إعادة التوزيع</button>
+    <button onclick="endGame()">🛑 إنهاء اللعبة</button>
+  </div>
   <div class="player-list" id="playerList"></div>
 
   <script>
@@ -53,8 +60,36 @@
       messagingSenderId: "555156171160",
       appId: "1:555156171160:web:9e5cd8ab8eb9ba7661423ed"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    function confirmSession() {
+      const id = document.getElementById('sessionId').value.trim();
+      if (!id) return alert('أدخل معرف الجلسة (Session ID)');
+      if (currentSessionId && currentSessionId !== id) {
+        const confirmChange = confirm('هل تريد تغيير الجلسة الحالية؟');
+        if (!confirmChange) return;
+      }
+      currentSessionId = id;
+      document.getElementById('sessionNotice').textContent = `🆔 الجلسة الحالية: ${id}`;
+      db.ref(`players/${id}`).on('value', snapshot => {
+        const playerList = document.getElementById('playerList');
+        playerList.innerHTML = '';
+        snapshot.forEach(child => {
+          const name = child.val().name;
+          const item = document.createElement('div');
+          item.className = 'player-item';
+          item.innerHTML = `<strong>${name}</strong><span class='role-label'>بانتظار التوزيع</span><button class='remove-btn' onclick='removePlayer("${child.key}")'>×</button>`;
+          playerList.appendChild(item);
+        });
+      });
+    }
+
+    function removePlayer(playerKey) {
+      if (!currentSessionId) return;
+      db.ref(`players/${currentSessionId}/${playerKey}`).remove();
+    }
 
     function copySessionId() {
       const input = document.getElementById('sessionId');
@@ -64,104 +99,67 @@
       });
     }
 
-    function confirmSession() {
-      const id = document.getElementById('sessionId').value.trim();
-      if (!id) return alert('أدخل معرف الجلسة (Session ID)');
-      currentSessionId = id;
-      document.getElementById('sessionNotice').textContent = `🆔 الجلسة الحالية: ${id}`;
-      renderPlayers(id);
-    }
-
-    function renderPlayers(sessionId) {
-      const ref = db.ref(`players/${sessionId}`);
-      const votesRef = db.ref(`votes/${sessionId}`);
-      const sessionRef = db.ref(`sessions/${sessionId}`);
-      Promise.all([
-        ref.once('value'),
-        votesRef.once('value'),
-        sessionRef.once('value')
-      ]).then(([playersSnap, votesSnap, rolesSnap]) => {
-        const voteCount = {};
-        votesSnap.forEach(v => {
-          const votedFor = v.val().votedFor;
-          if (votedFor) voteCount[votedFor] = (voteCount[votedFor] || 0) + 1;
-        });
-        const list = document.getElementById('playerList');
-        list.innerHTML = '';
-        playersSnap.forEach(child => {
-          const data = child.val();
-          const name = data.name;
-          const role = rolesSnap.child(name).val() || '❓';
-          const isDead = data.dead === true;
-          const votes = voteCount[name] || 0;
-          const item = document.createElement('div');
-          item.className = 'player-item';
-          item.innerHTML = `<strong>${name}</strong><span class='role-label'>${role}</span>
-            <div style='margin-top:5px;'>📊 تصويت: ${votes}</div>
-            ${!isDead ? `<button onclick='markDead("${child.key}")'>☠️ إخراج</button>` : `<div style='color:red'>💀 ميت</div>`}
-            <button class='remove-btn' onclick='removePlayer("${child.key}")'>×</button>`;
-          list.appendChild(item);
-        });
-      });
-    }
-
-    function markDead(key) {
-      db.ref(`players/${currentSessionId}/${key}`).update({ dead: true });
-      renderPlayers(currentSessionId);
-    }
-
-    function removePlayer(key) {
-      db.ref(`players/${currentSessionId}/${key}`).remove();
-      renderPlayers(currentSessionId);
-    }
-
     function startGame() {
       if (!currentSessionId) return alert('يرجى إدخال Session ID أولاً');
       const sessionId = currentSessionId;
       const mafiaCount = parseInt(document.getElementById('mafiaCount').value) || 2;
-      db.ref(`players/${sessionId}`).once('value', snapshot => {
-        const players = [];
-        snapshot.forEach(child => {
-          players.push({ key: child.key, name: child.val().name });
-        });
 
-        const shuffled = [...players].sort(() => 0.5 - Math.random());
-        const roles = [];
-        for (let i = 0; i < mafiaCount; i++) roles.push('مافيا');
-        roles.push('دكتور');
-        roles.push('شايب');
-        while (roles.length < players.length) roles.push('مواطن');
+      db.ref(`status/${sessionId}`).once('value', snapshot => {
+        if (snapshot.val() === 'started') {
+          const restart = confirm('اللعبة شغالة حالياً، هل تريد إعادة التوزيع؟');
+          if (!restart) return;
+        }
 
+        const ref = db.ref(`players/${sessionId}`);
         const sessionRef = db.ref(`sessions/${sessionId}`);
         sessionRef.remove();
 
-        shuffled.forEach((player, i) => {
-          const role = roles[i] || 'مواطن';
-          sessionRef.child(player.name).set(role);
-        });
-
-        db.ref(`status/${sessionId}`).set('started');
-        db.ref(`votes/${sessionId}`).remove();
-        db.ref(`players/${sessionId}`).once('value', snap => {
-          snap.forEach(child => {
-            db.ref(`players/${sessionId}/${child.key}/dead`).remove();
+        ref.once('value', snapshot => {
+          const players = [];
+          snapshot.forEach(child => {
+            players.push({ key: child.key, name: child.val().name });
           });
+
+          const shuffled = [...players].sort(() => 0.5 - Math.random());
+          const roles = [];
+          for (let i = 0; i < mafiaCount; i++) roles.push('مافيا');
+          roles.push('دكتور');
+          roles.push('شايب');
+          while (roles.length < players.length) roles.push('مواطن');
+
+          shuffled.forEach((player, i) => {
+            const role = roles[i] || 'مواطن';
+            sessionRef.child(player.name).set(role);
+          });
+
+          db.ref(`status/${sessionId}`).set('started');
+          renderPlayers(sessionId);
+          alert('✅ تم توزيع الأدوار بنجاح!');
         });
-        setTimeout(() => renderPlayers(sessionId), 500);
-        alert('✅ تم توزيع الأدوار!');
       });
     }
 
     function endGame() {
-      const sessionId = currentSessionId;
+      const sessionId = document.getElementById('sessionId').value.trim();
       db.ref(`sessions/${sessionId}`).remove();
-      db.ref(`votes/${sessionId}`).remove();
       db.ref(`status/${sessionId}`).set('ended');
       document.getElementById('playerList').innerHTML = '';
     }
 
-    function redistributeGame() {
-      startGame();
+    function renderPlayers(sessionId) {
+      const sessionRef = db.ref(`sessions/${sessionId}`);
+      sessionRef.once('value', snapshot => {
+        const list = document.getElementById('playerList');
+        list.innerHTML = '';
+        snapshot.forEach(child => {
+          const player = child.key;
+          const role = child.val();
+          const item = document.createElement('div');
+          item.className = 'player-item';
+          item.innerHTML = `<strong>${player}</strong><span class='role-label'>${role}</span>`;
+          list.appendChild(item);
+        });
+      });
     }
   </script>
 </body>
