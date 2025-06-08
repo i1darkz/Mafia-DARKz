@@ -5,8 +5,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Darkz Mafia - Host</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+    function toggleVoting() {
+      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
+      const btn = document.getElementById("votingToggleBtn");
+      db.ref(`status/${currentSessionId}`).once("value", snap => {
+        const status = snap.val();
+        if (status === "voting") {
+          db.ref(`status/${currentSessionId}`).set("started");
+          btn.style.background = "#800";
+          btn.textContent = "🗳️ التصويت مغلق";
+        } else {
+          db.ref(`status/${currentSessionId}`).set("voting");
+          btn.style.background = "#0a0";
+          btn.textContent = "🗳️ التصويت مفعل";
+        }
+      });
+    }
+
+</script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
+    function toggleVoting() {
+      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
+      const btn = document.getElementById("votingToggleBtn");
+      db.ref(`status/${currentSessionId}`).once("value", snap => {
+        const status = snap.val();
+        if (status === "voting") {
+          db.ref(`status/${currentSessionId}`).set("started");
+          btn.style.background = "#800";
+          btn.textContent = "🗳️ التصويت مغلق";
+        } else {
+          db.ref(`status/${currentSessionId}`).set("voting");
+          btn.style.background = "#0a0";
+          btn.textContent = "🗳️ التصويت مفعل";
+        }
+      });
+    }
+
+</script>
   <style>
     body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
     input, button { padding: 10px; margin: 10px; border-radius: 8px; border: none; font-size: 16px; }
@@ -37,7 +73,7 @@
   <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
   <input type="number" id="mafiaCount" placeholder="عدد المافيا" min="1" max="10" style="width: 150px;">
   <button onclick="startGame()">🚀 ابدأ اللعبة</button>
-  <button onclick="startVoting()">🗳️ بدء التصويت</button>
+  <button id="votingToggleBtn" onclick="toggleVoting()" style="background:#800;">🗳️ التصويت مغلق</button>
   <button onclick="endGame()">🛑 إنهاء اللعبة</button>
   <div class="player-list" id="playerList"></div>
 
@@ -166,6 +202,24 @@
       db.ref(`status/${currentSessionId}`).set('ended');
       document.getElementById('playerList').innerHTML = '';
     }
-  </script>
+  
+    function toggleVoting() {
+      if (!currentSessionId) return alert("يرجى تأكيد الجلسة أولاً");
+      const btn = document.getElementById("votingToggleBtn");
+      db.ref(`status/${currentSessionId}`).once("value", snap => {
+        const status = snap.val();
+        if (status === "voting") {
+          db.ref(`status/${currentSessionId}`).set("started");
+          btn.style.background = "#800";
+          btn.textContent = "🗳️ التصويت مغلق";
+        } else {
+          db.ref(`status/${currentSessionId}`).set("voting");
+          btn.style.background = "#0a0";
+          btn.textContent = "🗳️ التصويت مفعل";
+        }
+      });
+    }
+
+</script>
 </body>
 </html>
