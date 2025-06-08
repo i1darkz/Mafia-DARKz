@@ -104,9 +104,13 @@
       });
     }
 
+    
     function markDead(key) {
       if (!currentSessionId) return;
       db.ref(`players/${currentSessionId}/${key}`).update({ dead: true });
+      db.ref(`votes/${currentSessionId}`).remove();
+    }
+/${key}`).update({ dead: true });
     }
 
     function removePlayer(key) {
