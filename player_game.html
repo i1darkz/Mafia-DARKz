@@ -1,13 +1,14 @@
 
 <!DOCTYPE html>
+
 <html lang="ar">
 <head>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
-  <meta charset="UTF-8">
-  <title>اللاعب - لعبة المافيا</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <style>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<title>اللاعب - لعبة المافيا</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
     body {
       font-family: 'IBM Plex Sans Arabic', sans-serif; 'Arial', sans-serif;
       background-color: #0f172a;
@@ -43,14 +44,13 @@
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1 id="playerName">اسمك</h1>
-    <h2 id="status">بانتظار بدء اللعبة...</h2>
-    <div id="roleInfo"></div>
-    <div class="players-list" id="playersList"></div>
-  </div>
-
-  <script>
+<div class="box">
+<h1 id="playerName">اسمك</h1>
+<h2 id="status">بانتظار بدء اللعبة...</h2>
+<div id="roleInfo"></div>
+<div class="players-list" id="playersList"></div>
+</div>
+<script>
     const firebaseConfig = {
       apiKey: "AIzaSyCTmpMEJdgbcwXs1Te5C4qvwtXSK526fWk",
       authDomain: "sama-form.firebaseapp.com",
@@ -144,5 +144,19 @@
       });
     }
   </script>
-</body>
+<div id="deathOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.9);color:white;font-size:2em;z-index:9999;justify-content:center;align-items:center;text-align:center;">💀 لقد تم قتلك</div><script>
+function checkIfDead(playerId) {
+  db.ref(`sessions/${sessionId}/players/${playerId}/alive`).on("value", snap => {
+    if (snap.exists() && snap.val() === false) {
+      document.getElementById("deathOverlay").style.display = "flex";
+      document.getElementById("voteSection").style.display = "none";
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const id = localStorage.getItem("playerId");
+  if (id) checkIfDead(id);
+});
+</script></body>
 </html>

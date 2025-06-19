@@ -1,13 +1,14 @@
 
 <!DOCTYPE html>
+
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>إدارة جلسة المافيا</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<title>إدارة جلسة المافيا</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<style>
     body {
       font-family: 'IBM Plex Sans Arabic', sans-serif;
       background-color: #0f172a;
@@ -53,44 +54,39 @@
   </style>
 </head>
 <body>
-  <h1>📋 إدارة جلسة المافيا</h1>
-
-  <div id="sessionBox">
-    <input type="text" id="sessionIdInput" placeholder="رمز الجلسة">
-    <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
-  </div>
-
-  <div id="controls" style="display:none;">
-    <p><strong>رمز الجلسة:</strong> <span id="sessionDisplay"></span></p>
-    <label>🎮 حالة اللعبة:</label>
-    <select id="gameStatus" onchange="updateStatus()">
-      <option value="waiting">🔄 انتظار</option>
-      <option value="playing">🎭 بدء اللعبة</option>
-      <option value="voting">🗳️ تصويت</option>
-      <option value="ended">💀 إنهاء التصويت</option>
-      <option value="result">🏆 إعلان الفائز</option>
-      <option value="reset">🔁 جولة جديدة</option>
-    </select>
-    <br>
-    <label>عدد المافيا:</label>
-    <select id="mafiaCount">
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-    </select>
-    <button onclick="assignRoles()">🎭 توزيع الأدوار</button>
-    <button onclick="loadPlayers()">🔄 تحديث اللاعبين</button>
-    <button onclick="deleteSession()" class="danger">🛑 حذف الجلسة</button>
-  </div>
-
-  <div class="players-container" id="playersList"></div>
-  <div id="winner" style="font-size:1.4em; margin-top: 30px;"></div>
-
-  <div>
-    <button class="admin-button" onclick="goToAdmin()">⚙️ صفحة الأدمن</button>
-  </div>
-
-  <script>
+<h1>📋 إدارة جلسة المافيا</h1>
+<div id="sessionBox">
+<input id="sessionIdInput" placeholder="رمز الجلسة" type="text"/>
+<button onclick="confirmSession()">✅ تأكيد الجلسة</button>
+</div>
+<div id="controls" style="display:none;">
+<p><strong>رمز الجلسة:</strong> <span id="sessionDisplay"></span></p>
+<label>🎮 حالة اللعبة:</label>
+<select id="gameStatus" onchange="updateStatus()">
+<option value="waiting">🔄 انتظار</option>
+<option value="playing">🎭 بدء اللعبة</option>
+<option value="voting">🗳️ تصويت</option>
+<option value="ended">💀 إنهاء التصويت</option>
+<option value="result">🏆 إعلان الفائز</option>
+<option value="reset">🔁 جولة جديدة</option>
+</select>
+<br/>
+<label>عدد المافيا:</label>
+<select id="mafiaCount">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+</select>
+<button onclick="assignRoles()">🎭 توزيع الأدوار</button>
+<button onclick="loadPlayers()">🔄 تحديث اللاعبين</button>
+<button class="danger" onclick="deleteSession()">🛑 حذف الجلسة</button>
+</div>
+<div class="players-container" id="playersList"></div>
+<div id="winner" style="font-size:1.4em; margin-top: 30px;"></div>
+<div>
+<button class="admin-button" onclick="goToAdmin()">⚙️ صفحة الأدمن</button>
+</div>
+<script>
     const firebaseConfig = {
       apiKey: "AIzaSyCTmpMEJdgbcwXs1Te5C4qvwtXSK526fWk",
       authDomain: "sama-form.firebaseapp.com",
@@ -198,5 +194,138 @@
       }
     }
   </script>
-</body>
+<script>
+function translateRole(role) {
+  switch(role) {
+    case "mafia": return "😈 المافيا";
+    case "doctor": return "🩺 الدكتور";
+    case "shai5": return "👁️ الشايب";
+    case "citizen": return "👤 المواطن";
+    default: return "؟";
+  }
+}
+
+function countVotes(players) {
+  const voteCount = {};
+  for (const key in players) {
+    const vote = players[key].vote;
+    if (vote) {
+      voteCount[vote] = (voteCount[vote] || 0) + 1;
+    }
+  }
+  return voteCount;
+}
+
+function loadPlayers() {
+  const list = document.getElementById("playersList");
+  db.ref(`sessions/${sessionId}/players`).once("value", snap => {
+    const players = snap.val();
+    const voteCounts = countVotes(players);
+    list.innerHTML = "";
+    for (const key in players) {
+      const p = players[key];
+      const card = document.createElement("div");
+      card.className = "player-card";
+      card.innerHTML = `
+        <p><strong>${p.name}</strong></p>
+        <p>الحالة: ${p.alive ? "🟢 حي" : "🔴 ميت"}</p>
+        <p>الدور: ${translateRole(p.role)}</p>
+        <p>📊 عدد التصويتات: ${voteCounts[key] || 0}</p>
+        <button onclick="killPlayer('${key}')">💀 قتل</button>
+      `;
+      list.appendChild(card);
+    }
+  });
+}
+</script><script>
+function autoKillHighestVoted() {
+  db.ref(`sessions/${sessionId}/players`).once("value", snap => {
+    const players = snap.val();
+    const voteCounts = countVotes(players);
+    let maxVotes = 0;
+    let topVoted = null;
+
+    for (const id in voteCounts) {
+      if (voteCounts[id] > maxVotes) {
+        maxVotes = voteCounts[id];
+        topVoted = id;
+      }
+    }
+
+    if (topVoted) {
+      db.ref(`sessions/${sessionId}/players/${topVoted}/alive`).set(false);
+    }
+  });
+}
+
+// تعديل حالة اللعبة من select
+document.addEventListener("DOMContentLoaded", function () {
+  const selector = document.getElementById("gameStatus");
+  if (selector) {
+    selector.addEventListener("change", function () {
+      const status = selector.value;
+      db.ref(`sessions/${sessionId}/gameStatus`).set(status);
+      if (status === "ended") {
+        autoKillHighestVoted();
+      }
+    });
+  }
+});
+</script><div id="gameResultDisplay" style="margin-top:20px;font-size:1.2em;font-weight:bold;"></div><script>
+function displayWinner() {
+  db.ref(`sessions/${sessionId}/players`).once("value", snap => {
+    const players = snap.val();
+    let mafiaAlive = 0;
+    let othersAlive = 0;
+    for (const key in players) {
+      const p = players[key];
+      if (!p.alive) continue;
+      if (p.role === "mafia") mafiaAlive++;
+      else othersAlive++;
+    }
+    const resultText = mafiaAlive === 0
+      ? "✅ الفريق الفائز: اللاعبين الطيبين"
+      : (mafiaAlive >= othersAlive ? "😈 الفريق الفائز: المافيا" : "🤔 لم تنتهِ اللعبة بعد");
+    document.getElementById("gameResultDisplay").innerText = resultText;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const selector = document.getElementById("gameStatus");
+  if (selector) {
+    selector.addEventListener("change", function () {
+      const status = selector.value;
+      db.ref(`sessions/${sessionId}/gameStatus`).set(status);
+      if (status === "result") {
+        displayWinner();
+      }
+    });
+  }
+});
+</script><script>
+function resetGame() {
+  db.ref(`sessions/${sessionId}/players`).once("value", snap => {
+    const players = snap.val();
+    for (const key in players) {
+      db.ref(`sessions/${sessionId}/players/${key}`).update({
+        alive: true,
+        vote: null
+      });
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const selector = document.getElementById("gameStatus");
+  if (selector) {
+    selector.addEventListener("change", function () {
+      const status = selector.value;
+      db.ref(`sessions/${sessionId}/gameStatus`).set(status);
+      if (status === "reset") {
+        resetGame();
+      }
+    });
+  }
+});
+</script></body>
 </html>
