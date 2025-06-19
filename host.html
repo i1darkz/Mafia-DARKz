@@ -140,7 +140,10 @@ setInterval(() => {
       if (!enteredId) return alert("أدخل رمز الجلسة أولاً");
       confirmedSessionId = enteredId;
       document.getElementById("sessionConfirmBox").style.display = "none";
-      document.getElementById("sessionControls").style.display = "block";
+      if (!document.getElementById("sessionControls").classList.contains("shown")) {
+  document.getElementById("sessionControls").style.display = "block";
+  document.getElementById("sessionControls").classList.add("shown");
+}
       alert("✅ تم تأكيد الجلسة: " + confirmedSessionId);
     }
 
