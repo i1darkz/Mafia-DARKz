@@ -236,5 +236,19 @@ setInterval(() => {
 }, 30 * 60 * 1000); // كل 30 دقيقة
 
 </script>
-</body>
+
+    <div style="margin-top: 40px;">
+      <button class="host-button" onclick="goToAdmin()">⚙️ صفحة الأدمن</button>
+    </div>
+    <script>
+    function goToAdmin() {
+      const pass = prompt("أدخل كلمة المرور:");
+      if (pass === "darkz2025") {
+        window.location.href = "admin.html";
+      } else {
+        alert("❌ كلمة المرور غير صحيحة");
+      }
+    }
+    </script>
+    </body>
 </html>
