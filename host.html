@@ -5,8 +5,48 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
   <title>إدارة جلسة المافيا</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+// 🧹 تنظيف الجلسات القديمة الفارغة
+setInterval(() => {
+  const oneHourAgo = Date.now() - 3600000; // 1 ساعة
+  db.ref("sessions").once("value", snap => {
+    const sessions = snap.val();
+    for (const sessionId in sessions) {
+      const session = sessions[sessionId];
+      const updatedAt = session.updatedAt || 0;
+      const players = session.players || {};
+      const playerCount = Object.keys(players).length;
+
+      if (playerCount === 0 && updatedAt < oneHourAgo) {
+        db.ref("sessions/" + sessionId).remove();
+        console.log("🗑️ تم حذف الجلسة المهجورة:", sessionId);
+      }
+    }
+  });
+}, 30 * 60 * 1000); // كل 30 دقيقة
+
+</script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js">
+// 🧹 تنظيف الجلسات القديمة الفارغة
+setInterval(() => {
+  const oneHourAgo = Date.now() - 3600000; // 1 ساعة
+  db.ref("sessions").once("value", snap => {
+    const sessions = snap.val();
+    for (const sessionId in sessions) {
+      const session = sessions[sessionId];
+      const updatedAt = session.updatedAt || 0;
+      const players = session.players || {};
+      const playerCount = Object.keys(players).length;
+
+      if (playerCount === 0 && updatedAt < oneHourAgo) {
+        db.ref("sessions/" + sessionId).remove();
+        console.log("🗑️ تم حذف الجلسة المهجورة:", sessionId);
+      }
+    }
+  });
+}, 30 * 60 * 1000); // كل 30 دقيقة
+
+</script>
   <style>
     body {
       font-family: 'IBM Plex Sans Arabic', sans-serif; 'Arial', sans-serif;
@@ -118,7 +158,12 @@
     const db = firebase.database();
     let sessionId = "";
 
-    function loadPlayers() {
+    function updateSessionTimestamp() {
+  db.ref(`sessions/${confirmedSessionId}/updatedAt`).set(Date.now());
+}
+
+function loadPlayers() {
+
       // sessionId already confirmed
       if (!sessionId) return alert("أدخل رمز الجلسة");
       const listDiv = document.getElementById("playersList");
@@ -156,7 +201,7 @@
           i++;
         }
         alert("🎭 تم توزيع الأدوار");
-        loadPlayers();
+        loadPlayers(); updateSessionTimestamp();
       });
     }
 
@@ -168,8 +213,28 @@
 
     function killPlayer(playerId) {
       db.ref(`sessions/${confirmedSessionId}/players/${playerId}/alive`).set(false);
-      loadPlayers();
+      loadPlayers(); updateSessionTimestamp();
     }
-  </script>
+  
+// 🧹 تنظيف الجلسات القديمة الفارغة
+setInterval(() => {
+  const oneHourAgo = Date.now() - 3600000; // 1 ساعة
+  db.ref("sessions").once("value", snap => {
+    const sessions = snap.val();
+    for (const sessionId in sessions) {
+      const session = sessions[sessionId];
+      const updatedAt = session.updatedAt || 0;
+      const players = session.players || {};
+      const playerCount = Object.keys(players).length;
+
+      if (playerCount === 0 && updatedAt < oneHourAgo) {
+        db.ref("sessions/" + sessionId).remove();
+        console.log("🗑️ تم حذف الجلسة المهجورة:", sessionId);
+      }
+    }
+  });
+}, 30 * 60 * 1000); // كل 30 دقيقة
+
+</script>
 </body>
 </html>
