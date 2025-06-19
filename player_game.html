@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>اللاعب - لعبة المافيا</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: 'IBM Plex Sans Arabic', sans-serif; 'Arial', sans-serif;
+      background-color: #0f172a;
+      color: #fff;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .box {
+      background-color: #1e293b;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    .players-list {
+      margin-top: 20px;
+    }
+    .vote-btn {
+      margin: 5px;
+      padding: 10px 20px;
+      background-color: #334155;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .vote-btn:hover {
+      background-color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1 id="playerName">اسمك</h1>
+    <h2 id="status">بانتظار بدء اللعبة...</h2>
+    <div id="roleInfo"></div>
+    <div class="players-list" id="playersList"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCTmpMEJdgbcwXs1Te5C4qvwtXSK526fWk",
+      authDomain: "sama-form.firebaseapp.com",
+      databaseURL: "https://sama-form-default-rtdb.firebaseio.com",
+      projectId: "sama-form",
+      storageBucket: "sama-form.appspot.com",
+      messagingSenderId: "978448315706",
+      appId: "1:978448315706:web:84a0792d0ee4a91eb08c03"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const sessionId = localStorage.getItem("sessionId");
+    const playerId = localStorage.getItem("playerId");
+    const playerRef = db.ref(`sessions/${sessionId}/players/${playerId}`);
+    const gameStatusRef = db.ref(`sessions/${sessionId}/gameStatus`);
+    const allPlayersRef = db.ref(`sessions/${sessionId}/players`);
+    let playerData = {};
+
+    document.getElementById("playerName").innerText = "اسمك: جاري التحميل...";
+
+    playerRef.on("value", snap => {
+      playerData = snap.val();
+      if (playerData) {
+        document.getElementById("playerName").innerText = playerData.name;
+      }
+    });
+
+    gameStatusRef.on("value", snap => {
+      const status = snap.val();
+      updateGameView(status);
+    });
+
+    function updateGameView(status) {
+      const statusText = document.getElementById("status");
+      const roleInfo = document.getElementById("roleInfo");
+      const playersList = document.getElementById("playersList");
+      roleInfo.innerHTML = "";
+      playersList.innerHTML = "";
+
+      if (!playerData || playerData.alive === false) {
+        statusText.innerText = "☠️ لقد تم قتلك. انتظر حتى تنتهي الجولة.";
+        return;
+      }
+
+      switch (status) {
+        case "waiting":
+          statusText.innerText = "بانتظار بدء اللعبة...";
+          break;
+        case "playing":
+          statusText.innerText = "✨ تم بدء اللعبة!";
+          roleInfo.innerHTML = `<p>🎭 دورك هو: <strong>${playerData.role}</strong></p>`;
+          loadAllPlayers(false);
+          break;
+        case "voting":
+          statusText.innerText = "🗳️ حان وقت التصويت!";
+          loadAllPlayers(true);
+          break;
+        case "ended":
+          statusText.innerText = "✅ تم التصويت، انتظر النتائج...";
+          break;
+        case "result":
+          statusText.innerText = "🏁 نهاية الجولة! راجع النتائج عند الهوست.";
+          break;
+        case "reset":
+          statusText.innerText = "🔁 جاري التحضير لجولة جديدة...";
+          break;
+        default:
+          statusText.innerText = "بانتظار تعليمات الهوست...";
+      }
+    }
+
+    function loadAllPlayers(enableVoting) {
+      const playersList = document.getElementById("playersList");
+      allPlayersRef.once("value", snap => {
+        const players = snap.val();
+        for (const key in players) {
+          const p = players[key];
+          if (!p.alive) continue;
+          const btn = document.createElement("button");
+          btn.className = "vote-btn";
+          btn.innerText = p.name;
+          btn.disabled = !enableVoting;
+          btn.onclick = () => {
+            db.ref(`sessions/${sessionId}/votes/${playerId}`).set(key);
+            document.getElementById("status").innerText = "✅ تم التصويت. انتظر النتائج...";
+            playersList.innerHTML = "";
+          };
+          playersList.appendChild(btn);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

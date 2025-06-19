@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>إدارة جلسة المافيا</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: 'IBM Plex Sans Arabic', sans-serif; 'Arial', sans-serif;
+      background-color: #0f172a;
+      color: #fff;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1em;
+    }
+    select {
+      background-color: #1e293b;
+      color: white;
+    }
+    .players-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .player-card {
+      background-color: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      width: 200px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: right;
+    }
+    .player-card h3 {
+      margin: 0;
+      font-size: 1.2em;
+    }
+    .player-card p {
+      margin: 5px 0;
+      font-size: 0.95em;
+    }
+    .kill-btn {
+      background-color: #dc2626;
+      color: white;
+      padding: 6px 12px;
+      margin-top: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 إدارة جلسة المافيا</h1>
+  
+    <div id="sessionConfirmBox">
+      <input type="text" id="sessionId" placeholder="رمز الجلسة">
+      <button onclick="confirmSession()">✅ تأكيد الجلسة</button>
+    </div>
+    <div id="sessionControls" style="display:none;">
+      <label>🔢 عدد المافيا:</label>
+      <select id="mafiaCount">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+      <button onclick="loadPlayers()">🔄 تحديث اللاعبين</button>
+      <button onclick="assignRoles()">🎭 توزيع الأدوار</button>
+    </div>
+    
+  <button onclick="loadPlayers()">تحديث اللاعبين</button>
+  <button onclick="assignRoles()">توزيع الأدوار</button>
+  <br>
+  <label>🎮 حالة اللعبة:</label>
+  <select id="gameStatus" onchange="updateStatus()">
+    <option value="waiting">🔄 انتظار</option>
+    <option value="playing">🎭 بدء اللعبة</option>
+    <option value="voting">🗳️ تصويت</option>
+    <option value="ended">💀 إنهاء التصويت</option>
+    <option value="result">🏆 إعلان الفائز</option>
+    <option value="reset">🔁 جولة جديدة</option>
+  </select>
+
+  <div class="players-container" id="playersList"></div>
+
+  <script>
+    let confirmedSessionId = "";
+
+    function confirmSession() {
+      const enteredId = document.getElementById("sessionId").value.trim();
+      if (!enteredId) return alert("أدخل رمز الجلسة أولاً");
+      confirmedSessionId = enteredId;
+      document.getElementById("sessionConfirmBox").style.display = "none";
+      document.getElementById("sessionControls").style.display = "block";
+      alert("✅ تم تأكيد الجلسة: " + confirmedSessionId);
+    }
+
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyCTmpMEJdgbcwXs1Te5C4qvwtXSK526fWk",
+      authDomain: "sama-form.firebaseapp.com",
+      databaseURL: "https://sama-form-default-rtdb.firebaseio.com",
+      projectId: "sama-form",
+      storageBucket: "sama-form.appspot.com",
+      messagingSenderId: "978448315706",
+      appId: "1:978448315706:web:84a0792d0ee4a91eb08c03"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let sessionId = "";
+
+    function loadPlayers() {
+      // sessionId already confirmed
+      if (!sessionId) return alert("أدخل رمز الجلسة");
+      const listDiv = document.getElementById("playersList");
+      db.ref(`sessions/${confirmedSessionId}/players`).once("value", snap => {
+        const players = snap.val();
+        listDiv.innerHTML = "";
+        for (const key in players) {
+          const p = players[key];
+          const card = document.createElement("div");
+          card.className = "player-card";
+          card.innerHTML = `
+            <h3>${p.name}</h3>
+            <p>الحالة: ${p.alive ? "✅ حي" : "☠️ ميت"}</p>
+            <p>الدور: ${p.role || "لم يحدد"}</p>
+            <button class="kill-btn" onclick="killPlayer('${key}')">قتل</button>
+          `;
+          listDiv.appendChild(card);
+        }
+      });
+    }
+
+    function assignRoles() {
+      db.ref(`sessions/${confirmedSessionId}/players`).once("value", snap => {
+        const players = snap.val();
+        const keys = Object.keys(players);
+        
+        const mafiaCount = parseInt(document.getElementById("mafiaCount").value);
+        const roles = Array(mafiaCount).fill("mafia").concat(["doctor", "shai5"]);
+    
+        const shuffled = keys.sort(() => 0.5 - Math.random());
+        let i = 0;
+        for (const key of shuffled) {
+          const role = i < roles.length ? roles[i] : "citizen";
+          db.ref(`sessions/${confirmedSessionId}/players/${key}/role`).set(role);
+          i++;
+        }
+        alert("🎭 تم توزيع الأدوار");
+        loadPlayers();
+      });
+    }
+
+    function updateStatus() {
+      const status = document.getElementById("gameStatus").value;
+      db.ref(`sessions/${confirmedSessionId}/gameStatus`).set(status);
+      alert(`📢 تم تحديث الحالة إلى: ${status}`);
+    }
+
+    function killPlayer(playerId) {
+      db.ref(`sessions/${confirmedSessionId}/players/${playerId}/alive`).set(false);
+      loadPlayers();
+    }
+  </script>
+</body>
+</html>
