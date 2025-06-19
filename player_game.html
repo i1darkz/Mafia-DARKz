@@ -133,7 +133,7 @@
           const btn = document.createElement("button");
           btn.className = "vote-btn";
           btn.innerText = p.name;
-          btn.disabled = !enableVoting;
+          btn.disabled = false;
           btn.onclick = () => {
             db.ref(`sessions/${sessionId}/votes/${playerId}`).set(key);
             document.getElementById("status").innerText = "✅ تم التصويت. انتظر النتائج...";
