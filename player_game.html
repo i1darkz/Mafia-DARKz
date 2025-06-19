@@ -158,5 +158,114 @@ document.addEventListener("DOMContentLoaded", function () {
   const id = localStorage.getItem("playerId");
   if (id) checkIfDead(id);
 });
+</script><div id="mafiaChatBox" style="display:none;margin-top:20px;">
+<h3>😈 دردشة المافيا</h3>
+<div id="mafiaMessages" style="background:#111;padding:10px;height:150px;overflow-y:auto;color:#0f0;margin-bottom:10px;border:1px solid #333;"></div>
+<input id="mafiaInput" placeholder="اكتب رسالتك" style="width:80%;padding:5px;"/>
+<button onclick="sendMafiaMessage()">إرسال</button>
+</div><script>
+function setupMafiaChat(playerId) {
+  db.ref(`sessions/${sessionId}/players/${playerId}/role`).once("value", snap => {
+    if (snap.val() === "mafia") {
+      document.getElementById("mafiaChatBox").style.display = "block";
+      listenForMafiaMessages();
+    }
+  });
+}
+
+function sendMafiaMessage() {
+  const message = document.getElementById("mafiaInput").value;
+  if (message.trim() === "") return;
+  const name = localStorage.getItem("playerName") || "مجهول";
+  const msgObj = {
+    name: name,
+    text: message,
+    time: Date.now()
+  };
+  db.ref(`sessions/${sessionId}/mafia_chat`).push(msgObj);
+  document.getElementById("mafiaInput").value = "";
+}
+
+function listenForMafiaMessages() {
+  db.ref(`sessions/${sessionId}/mafia_chat`).on("child_added", snap => {
+    const msg = snap.val();
+    const div = document.createElement("div");
+    div.innerText = `🕵️‍♂️ ${msg.name}: ${msg.text}`;
+    document.getElementById("mafiaMessages").appendChild(div);
+    document.getElementById("mafiaMessages").scrollTop = document.getElementById("mafiaMessages").scrollHeight;
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const playerId = localStorage.getItem("playerId");
+  if (playerId) setupMafiaChat(playerId);
+});
+</script><div id="roleActionBox" style="display:none;margin-top:30px;">
+<h3 id="roleActionTitle">🔘 اختيار لاعب</h3>
+<select id="roleTargetSelect" style="padding:5px;font-size:1em;"></select>
+<button onclick="submitRoleAction()" style="margin-top:10px;">✔️ تأكيد</button>
+</div><script>
+function loadAlivePlayersForAction(callback) {
+  db.ref(`sessions/${sessionId}/players`).once("value", snap => {
+    const players = snap.val();
+    const select = document.getElementById("roleTargetSelect");
+    select.innerHTML = "";
+    for (const key in players) {
+      if (players[key].alive) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.innerText = players[key].name;
+        select.appendChild(opt);
+      }
+    }
+    callback && callback(players);
+  });
+}
+
+function showRoleAction(role) {
+  loadAlivePlayersForAction();
+  const box = document.getElementById("roleActionBox");
+  const title = document.getElementById("roleActionTitle");
+  if (role === "mafia") title.innerText = "🔪 اختر من تريد قتله";
+  else if (role === "doctor") title.innerText = "🩺 اختر من تريد معالجته";
+  else if (role === "shai5") title.innerText = "👁️ اختر من تريد كشفه";
+  else return;
+  box.style.display = "block";
+}
+
+function checkRoleInteraction(playerId) {
+  db.ref(`sessions/${sessionId}`).on("value", snap => {
+    const data = snap.val();
+    const gameStatus = data.gameStatus;
+    const player = data.players[playerId];
+    if (!player || !player.role || !player.alive) return;
+    if (gameStatus === player.role + "_time") {
+      showRoleAction(player.role);
+    } else {
+      document.getElementById("roleActionBox").style.display = "none";
+    }
+  });
+}
+
+function submitRoleAction() {
+  const targetId = document.getElementById("roleTargetSelect").value;
+  const role = localStorage.getItem("playerRole");
+  const name = localStorage.getItem("playerName") || "مجهول";
+  db.ref(`sessions/${sessionId}/${role}_actions`).push({
+    by: name,
+    target: targetId,
+    time: Date.now()
+  });
+  alert("✅ تم تنفيذ الإجراء");
+  document.getElementById("roleActionBox").style.display = "none";
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const playerId = localStorage.getItem("playerId");
+  if (playerId) {
+    setupMafiaChat(playerId);
+    checkRoleInteraction(playerId);
+  }
+});
 </script></body>
 </html>

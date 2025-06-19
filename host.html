@@ -53,7 +53,7 @@
     }
   </style>
 </head>
-<body>
+<body><select id="gameStatus" style="margin-top:20px; padding:10px; font-size:1em;"><option value="waiting">⏳ في الانتظار</option><option value="mafia_time">😈 وقت المافيا</option><option value="doctor_time">🩺 وقت الدكتور</option><option value="shai5_time">👁️ وقت الشايب</option><option value="voting">🗳️ وقت التصويت</option><option value="ended">🛑 نهاية الجولة</option><option value="result">🏆 إعلان النتيجة</option><option value="reset">🔄 إعادة الجولة</option></select>
 <h1>📋 إدارة جلسة المافيا</h1>
 <div id="sessionBox">
 <input id="sessionIdInput" placeholder="رمز الجلسة" type="text"/>
@@ -324,6 +324,16 @@ document.addEventListener("DOMContentLoaded", function () {
       if (status === "reset") {
         resetGame();
       }
+    });
+  }
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", function () {
+  const selector = document.getElementById("gameStatus");
+  if (selector) {
+    selector.addEventListener("change", function () {
+      const status = selector.value;
+      db.ref(`sessions/${sessionId}/gameStatus`).set(status);
     });
   }
 });
