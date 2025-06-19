@@ -41,7 +41,15 @@
 <body>
   <h1>⚙️ لوحة تحكم الأدمن</h1>
   <p>استعراض وحذف الجلسات الحالية:</p>
-  <div id="sessionList">جارٍ التحميل...</div>
+  
+    <div style="margin-bottom: 30px;">
+      <h3>🤖 إضافة بوتات إلى جلسة:</h3>
+      <input type="text" id="botSessionId" placeholder="رمز الجلسة" style="padding: 10px; border-radius: 8px; border: none; width: 200px;">
+      <input type="number" id="botCount" min="1" max="20" value="3" style="padding: 10px; border-radius: 8px; border: none; width: 80px;">
+      <button onclick="addBots()" style="background-color:#3b82f6; margin-top: 10px;">➕ إضافة البوتات</button>
+    </div>
+    <div id="sessionList">جارٍ التحميل...</div>
+    
 
   <script>
     const firebaseConfig = {
@@ -62,6 +70,10 @@
       db.ref("sessions").once("value", snap => {
         const sessions = snap.val();
         sessionList.innerHTML = "";
+        if (!sessions) {
+          sessionList.innerHTML = "<p>لا توجد أي جلسات حالياً في قاعدة البيانات.</p>";
+          return;
+        }
         for (const id in sessions) {
           const s = sessions[id];
           const box = document.createElement("div");
@@ -83,12 +95,52 @@
       if (confirm(`هل تريد حذف الجلسة (${id})؟`)) {
         db.ref("sessions/" + id).remove().then(() => {
           alert("✅ تم الحذف");
-          loadSessions();
+          
+    function addBots() {
+      const sessionId = document.getElementById("botSessionId").value.trim();
+      const count = parseInt(document.getElementById("botCount").value);
+      if (!sessionId || count < 1) {
+        alert("❗ أدخل رمز الجلسة وعدد البوتات بشكل صحيح.");
+        return;
+      }
+      for (let i = 1; i <= count; i++) {
+        const botId = "bot_" + Date.now() + "_" + i;
+        db.ref(`sessions/${sessionId}/players/${botId}`).set({
+          name: "Bot " + i,
+          role: "",
+          alive: true
+        });
+      }
+      alert(`✅ تم إضافة ${count} بوت إلى الجلسة (${sessionId})`);
+    }
+
+    loadSessions();
+    
         });
       }
     }
 
+    
+    function addBots() {
+      const sessionId = document.getElementById("botSessionId").value.trim();
+      const count = parseInt(document.getElementById("botCount").value);
+      if (!sessionId || count < 1) {
+        alert("❗ أدخل رمز الجلسة وعدد البوتات بشكل صحيح.");
+        return;
+      }
+      for (let i = 1; i <= count; i++) {
+        const botId = "bot_" + Date.now() + "_" + i;
+        db.ref(`sessions/${sessionId}/players/${botId}`).set({
+          name: "Bot " + i,
+          role: "",
+          alive: true
+        });
+      }
+      alert(`✅ تم إضافة ${count} بوت إلى الجلسة (${sessionId})`);
+    }
+
     loadSessions();
+    
   </script>
 </body>
 </html>
